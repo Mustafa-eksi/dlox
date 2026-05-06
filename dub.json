@@ -1,0 +1,10 @@
+{
+	"description": "Compiler for lox language from Crafting Interpreters book",
+	"license": "ISC",
+	"authors": [
+		"Mustafa Eksi"
+	],
+	"copyright": "Copyright © 2026, Mustafa Eksi",
+	"name": "dlox",
+    "buildOptions": ["debugMode"]
+}
