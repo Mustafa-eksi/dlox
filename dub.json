@@ -6,5 +6,6 @@
 	],
 	"copyright": "Copyright © 2026, Mustafa Eksi",
 	"name": "dlox",
-    "buildOptions": ["debugMode"]
+    "buildOptions": ["debugMode"],
+    "defaultCompiler": "dmd"
 }
