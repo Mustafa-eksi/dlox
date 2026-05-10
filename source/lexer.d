@@ -33,13 +33,18 @@ struct Lexer(T: int) {
 
     Token next_symbol() {
         // TODO: change isWhite with separators and discarding separators
-        while (cursor < source_code.length && isWhite(source_code[cursor])) {
+        while (cursor < source_code.length && source_code[cursor] in
+                discarding_separators) {
             cursor++;
         }
         size_t start = cursor;
         if (cursor >= source_code.length)
             return Token(to!T(0), "");
-        while (cursor < source_code.length && !isWhite(source_code[cursor])) {
+        while (cursor < source_code.length && source_code[cursor] !in separators
+                && source_code[cursor] !in discarding_separators) {
+            cursor++;
+        }
+        if (source_code[cursor] in separators && start == cursor) {
             cursor++;
         }
         auto ty = tokenizer(source_code[start..cursor]);
