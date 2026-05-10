@@ -91,41 +91,25 @@ float interpret(CNode *node) {
 int main(string[] args)
 {
     if (args.length < 2) {
-        writeln("USAGE: ./dlox <filename>");
+        writeln("USAGE: ./dlox <filename> | <command> | -h");
         return -1;
     }
-    string source_filename = args[1];
-    if (!exists(source_filename)) {
-        writeln("Error: Can't access file");
-        return -1;
+    if (args[1] == "-h") {
+        writeln("USAGE: ./dlox <filename> | <command> | -h");
+        writeln("Commands:");
+        writeln("\tdump_grammar");
+        writeln("\tprint_parsing_table");
+        writeln("\tprint_first_table");
+        writeln("\tprint_follow_table");
+        writeln("\tdump_cst (specify filename in next argument)");
+        writeln("\tdump_tokens (specify filename in next argument)");
+        return 0;
     }
-    string source_code = to!string(read(source_filename));
-    auto lexer = Lexer!Tokens(source_code, SEPARATORS, DISCARDING_SEPARATORS, &tokenizer);
-    auto tk = lexer.next_symbol();
-    Token[] tokens;
-    while (tk.type != Tokens.EPSILON) {
-        // writeln(tk);
-        tokens ~= tk;
-        tk = lexer.next_symbol();
-    }
-
-    // writeln(tokens);
-    /*
-     * E    = TE'
-     * E'   = +TE' | e
-     * T    = FT'
-     * T'   = *FT' | e
-     * F    = (E) | id
-     */
-    /*
-    GS[][Nonterminals] first_table = [
-        Factor: [OPAREN, IDENTIFIER],
-        TermRest: [TIMES],
-        Term: [OPAREN, IDENTIFIER],
-        ExpressionRest: [PLUS],
-        Expression: [OPAREN, IDENTIFIER]
-    ];
-    */
+    string source_filename;
+    if (args[1] == "dump_cst" || args[1] == "dump_tokens")
+        source_filename = args[2];
+    else
+        source_filename = args[1];
 
     GS[][][Nonterminals] RULE_SET = [
         Nonterminals.Expression: [
@@ -151,12 +135,51 @@ int main(string[] args)
         ],
     ];
 
+    auto parser = Parser!(Tokens, Nonterminals)(RULE_SET, Nonterminals.Expression);
+    if (args[1] == "dump_grammar") {
+        writeln(RULE_SET);
+        return 0;
+    } else if (args[1] == "print_first_table") {
+        writeln(parser.first_table);
+        return 0;
+    } else if (args[1] == "print_follow_table") {
+        writeln(parser.follow_table);
+        return 0;
+    } else if (args[1] == "print_parsing_table") {
+        writeln(parser.parsing_table);
+        return 0;
+    }
+    if (!exists(source_filename)) {
+        writeln("Error: Can't access file");
+        return -1;
+    }
+    string source_code = to!string(read(source_filename));
+    auto lexer = Lexer!Tokens(source_code, SEPARATORS, DISCARDING_SEPARATORS, &tokenizer);
+    auto tk = lexer.next_symbol();
+    Token[] tokens;
+    while (tk.type != Tokens.EPSILON) {
+        // writeln(tk);
+        tokens ~= tk;
+        tk = lexer.next_symbol();
+    }
+    if (args[1] == "dump_tokens") {
+        writeln(tokens);
+    }
+
+    /*
+     * E    = TE'
+     * E'   = +TE' | e
+     * T    = FT'
+     * T'   = *FT' | e
+     * F    = (E) | id
+     */
+
     tokens ~= Token(Tokens.EPSILON, "");
-    auto parser = Parser!(Tokens, Nonterminals)(tokens, RULE_SET,
-        Nonterminals.Expression);
-    auto tree = parser.parse();
-    // tree.print();
-    writeln(interpret(&tree));
-    // writeln(tree);
+    auto tree = parser.parse(tokens);
+    if (args[1] == "dump_cst") {
+        tree.print();
+    } else {
+        writeln(interpret(&tree));
+    }
     return 0;
 }

@@ -41,7 +41,6 @@ struct Parser(T, N) {
     GrammarTable rule_list;
     ParserError error;
 
-    TokenInfo[] token_list;
     N start_nt;
 
     alias RuleIndex = Tuple!(int, N);
@@ -185,7 +184,7 @@ struct Parser(T, N) {
     alias SymbolInfo = SumType!(N, TokenInfo);
     alias CNode = CstNode!SymbolInfo;
 
-    CNode parse() {
+    CNode parse(TokenInfo[] token_list) {
         CNode parse_tree = CNode(SymbolInfo(start_nt));
         Tuple!(GrammarSymbol, CNode*)[] nt_stack =
             [tuple(GrammarSymbol(start_nt), &parse_tree)];
@@ -247,8 +246,7 @@ struct Parser(T, N) {
         return parse_tree;
     }
 
-    this (TokenInfo[] tokens, GrammarSymbol[][][N] rules, N start) {
-        token_list = tokens;
+    this (GrammarSymbol[][][N] rules, N start) {
         rule_list = rules;
         import std.stdio;
         start_nt = start;
