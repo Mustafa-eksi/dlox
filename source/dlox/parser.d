@@ -1,3 +1,6 @@
+/// Predictive Parser Implementation
+module dlox.parser;
+
 import std.sumtype : SumType, match, has, get;
 import std.typecons : Tuple, tuple;
 import std.conv : to;
@@ -7,8 +10,8 @@ import std.algorithm.searching : canFind;
 import std.array : assocArray, byPair, popBack;
 import std.stdio : writeln, writefln;
 
-import cst;
-import lexer;
+import dlox.cst;
+import dlox.lexer;
 
 /* TODO:
  * 1- Left recursion elimination
@@ -17,29 +20,21 @@ import lexer;
  * 3- Check if the grammar is LL(1)
  */
 
-/*
- * @brief Parser template creates a LL(1) parser for the given grammar and
- * tokens.
- * @param T Token enumeration type. T should has 0 reserved as EOF/EPSILON.
- * Naming doesn't matter but don't use 0 for different things.
- * @param N Nonterminal enumeration type
- */
+/++
+ + Parser template creates a LL(1) parser for the given grammar and
+ + tokens.
+ +
+ + Params:
+ +     T = Token enumeration type. T should has 0 reserved as EOF/EPSILON.
+ +         Naming doesn't matter but don't use 0 for different things.
+ +     N = Nonterminal enumeration type
+ +/
 struct Parser(T, N) {
     const T epsilon = cast(T)0;
-    enum ParserResult {
-        Success,
-        NoMatch,
-        FaultyState,
-    }
-    struct ParserError {
-        ParserResult type;
-        size_t line, column;
-    }
     alias TokenInfo = Lexer!T.Token;
     alias GrammarSymbol = SumType!(T, N);
     alias GrammarTable = GrammarSymbol[][][N];
     GrammarTable rule_list;
-    ParserError error;
 
     N start_nt;
 
@@ -49,24 +44,18 @@ struct Parser(T, N) {
     int[T][N] first_table;
     int[T][N] follow_table;
 
+    /++
+     + Initializers "First" sets of each nonterminal.
+     +
+     + First set of a nonterminal includes every token that can be the leftmost
+     + symbol of that nonterminal.
+     + Example: For this production
+     + A = xyz | bcde | efg
+     + First(A) = {x, b, e}
+     +/
     void initFirst() {
-        // foreach (nt, r; rule_list) {
-        //     foreach (alt_idx, alt_r; r) {
-        //         RuleIndex[] st;
-        //         st ~= RuleIndex(alt_idx, nt);
-        //         while (!st.empty) {
-        //             // FIXME: is this needed?
-        //             const RuleIndex[] cpy_st = st;
-        //             foreach (pidx, sym; rule_list[st.back[1]][st.back[0]]) {
-        //             }
-        //             if (cpy_st == st) {
-        //                 break;
-        //             }
-        //         }
-        //     }
-        // }
         // TODO: Require epsilon token in 'empty' productions
-        /*
+        /* Algorithm:
             For each non-terminal
                 push it to stack
                 while stack is not empty
@@ -132,6 +121,16 @@ struct Parser(T, N) {
         }
     }
 
+    /++
+     + Initializes 'Follow' sets of each nonterminal.
+     +
+     + Follow set of a nonterminal contains every token that can appear right
+     + after that nonterminal ends.
+     + Example: For this grammer.
+     + A = xBy | zBq | uBw
+     + B = a | b // definition of B doesn't matter in this case
+     + Follow(A) = {y, q, w}
+     +/
     void initFollow(N starter) {
         follow_table[starter][epsilon] = true;
         bool changed = true;
@@ -168,6 +167,9 @@ struct Parser(T, N) {
         }
     }
 
+    /++
+     + Builds LL(1) parsing table using first and follow sets.
+     +/
     void buildParsingTable() {
         foreach (nt, rule; rule_list) {
             foreach (sym, first_idx; first_table[nt]) {
@@ -184,6 +186,11 @@ struct Parser(T, N) {
     alias SymbolInfo = SumType!(N, TokenInfo);
     alias CNode = CstNode!SymbolInfo;
 
+    /++
+     + Parses the given token_list.
+     +
+     + Returns: Root of the parse tree
+     +/
     CNode parse(TokenInfo[] token_list) {
         CNode parse_tree = CNode(SymbolInfo(start_nt));
         Tuple!(GrammarSymbol, CNode*)[] nt_stack =
@@ -193,6 +200,7 @@ struct Parser(T, N) {
         while (!nt_stack.empty) {
             auto top = nt_stack.back[0];
             CNode* pt_cursor = nt_stack.back[1];
+
             if (token_cursor >= token_list.length) {
                 writeln("Error: Run out of tokens.");
                 writeln(nt_stack);
@@ -200,32 +208,23 @@ struct Parser(T, N) {
             auto w = token_list[token_cursor].type;
 
             if (top.has!T && top.get!T == w) {
-                // Match success
-                // writeln("= Match success: ", w, ", cursor = ", token_cursor);
                 nt_stack.popBack();
-                // writeln(*pt_cursor, w);
+                // FIXME: Having seminfo inside cst.type is misleading
                 pt_cursor.type.get!TokenInfo.seminfo = token_list[token_cursor].seminfo;
                 token_cursor++;
             } else if (top.has!T) {
+                // FIXME: Return the error to the user.
                 writefln("Parsing error (Expected token '%s') %d - %s",
                         top.get!T, token_cursor, nt_stack);
                 writeln("- Found ", w);
                 return parse_tree;
             } else if (top.get!N !in parsing_table || w !in
                     parsing_table[top.get!N]) {
+                // FIXME: Return the error to the user.
                 writefln("Parsing error (Match error %s) %d - %s", top.get!N, token_cursor, nt_stack);
                 return parse_tree;
-            }
-            else if (top.get!N in parsing_table && w in
+            } else if (top.get!N in parsing_table && w in
                     parsing_table[top.get!N]) {
-                // writeln("===============");
-                // writefln("Matched rule => %s %s", top.get!N,
-                //         parsing_table[top.get!N][w]);
-                // writeln(token_list[token_cursor]);
-                // // writeln(rule_list[top.get!N][parsing_table[top.get!N][w]]);
-                // // writeln("w: ", w);
-                // // writeln(nt_stack);
-                // writeln("===============");
                 nt_stack.popBack();
                 pt_cursor.alt_idx = parsing_table[top.get!N][w];
                 auto list = rule_list[top.get!N][parsing_table[top.get!N][w]];
@@ -246,6 +245,16 @@ struct Parser(T, N) {
         return parse_tree;
     }
 
+    /++
+     + Constructs the parser structure.
+     +
+     + Params:
+     +      rules = Grammar. Keys correspond to nonterminals, values are
+     +              productions of that nonterminal. A production is an array of
+     +              alternatives which all consist of GrammarSymbols.
+     +      start = Starting symbol. This is what will be matched when parse
+     +              gets called.
+     +/
     this (GrammarSymbol[][][N] rules, N start) {
         rule_list = rules;
         import std.stdio;

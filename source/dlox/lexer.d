@@ -1,4 +1,5 @@
 /// A simple Lexer implementation
+module dlox.lexer;
 
 import std.conv : to;
 import std.ascii : isWhite;

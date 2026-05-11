@@ -10,11 +10,13 @@
     "configurations": [
         {
             "name": "dlox",
-            "targetType": "library"
+            "targetType": "library",
+            "sourcePaths": ["source/"]
         },
         {
             "name": "simple_term_factor",
             "mainSourceFile": "./tests/simple_term_factor.d",
+            "sourcePaths": ["./tests/"],
             "targetType": "executable",
             "targetName": "simple_term_factor"
         }

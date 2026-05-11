@@ -3,8 +3,7 @@ import std.file : exists, read;
 import std.conv : to, parse;
 import std.typecons : tuple;
 import std.sumtype : has, get;
-import lexer;
-import parser;
+import dlox;
 
 enum Tokens {
     EPSILON = 0,

@@ -1,19 +1,34 @@
+/// Concrete Syntax Tree Node.
+module dlox.cst;
+
 import std.array : empty;
 import std.stdio : write, writeln;
 import std.conv : to;
 
+/++
+ + Concrete Syntax Tree Node.
+ +
+ + Params:
+ +      Sym = Symbol type, could be anything
+ +/
 struct CstNode(Sym) {
     Sym type;
     int alt_idx = -1;
     CstNode*[] children;
     CstNode* parent;
 
+    /++
+     + Adds child with the `type`.
+     +
+     + Params:
+     +      type = Content of the child.
+     +/
     void addChild(Sym type) {
-        // writeln(" - addChild ", type, " to ", this);
         children ~= new CstNode(type);
         children[$-1].parent = &this;
     }
 
+    /// Prints the node and all its children in a readable way.
     void print(int level=0) {
         for (int i = 0; i < level; i++)
             write("\t");
