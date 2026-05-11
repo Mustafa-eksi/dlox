@@ -7,6 +7,7 @@
 	"copyright": "Copyright © 2026, Mustafa Eksi",
 	"name": "dlox",
     "targetType": "library",
+    "-ddoxTool": "scod",
     "configurations": [
         {
             "name": "dlox",
