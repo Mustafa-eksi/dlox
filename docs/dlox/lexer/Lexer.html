@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0"/>
+		<title>Struct Lexer</title>
+		<link rel="stylesheet" href="../../css/style.min.css"/>
+		<script type="text/javascript" src="../../js/script.min.js"></script>
+	</head>
+	<body onload="setupDdox();">
+		<header></header>
+		<nav id="main-nav">
+			<div>
+				<noscript>
+					<p style="color: red">The search functionality needs JavaScript enabled</p>
+				</noscript>
+				<div id="symbolSearchPane" style="display: none">
+					<form action="#" method="GET">
+						<input id="symbolSearch" type="text" name="q" placeholder="Search for symbols" autocomplete="off" onchange="performSymbolSearch(24);" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" autofocus/>
+					</form>
+					<ul id="symbolSearchResults" class="symbolList" style="display: none"></ul><script type="application/javascript" src="../../symbols.js"></script><script type="application/javascript">var symbolSearchRootDir = "../../";
+document.getElementById('symbolSearchPane').style.display = 'block';</script>
+				</div>
+				<ul class="tree-view">
+					<li class="tree-view ">
+						<div class="package ">
+							<a href="../../dlox.html">dlox</a>
+						</div>
+				<ul class="tree-view">
+					<li>
+						<div class="module ">
+							<a href="../../dlox/cst.html">cst</a>
+						</div>
+					</li>
+					<li>
+						<div class="module selected">
+							<a href="../../dlox/lexer.html">lexer</a>
+						</div>
+					</li>
+					<li>
+						<div class="module ">
+							<a href="../../dlox/parser.html">parser</a>
+						</div>
+					</li>
+				</ul>
+					</li>
+				</ul>
+			</div>
+			<p id="main-nav-footer">
+				Built with<a href="https://github.com/MartinNowak/scod">scod</a>
+			</p>
+		</nav>
+		<div id="main-contents">
+			<div>
+				<h1>Struct Lexer</h1><p>Lexer struct is a really customizable lexer.
+</p>
+				<div class="prototype">
+					<code class="lang-d">
+						<div class="single-prototype">
+				<span class="kwd">struct</span> <span class="typ">Lexer</span>(T)<span class="pun">;</span>
+						</div>
+					</code>
+				</div>
+				<section></section>
+
+				<section><h2>Constructors</h2>
+					<table>
+						<col class="caption"/>
+						<tr>
+							<th>Name</th><th>Description</th>
+						</tr>
+						<tr>
+							<td>
+								<a href="../../dlox/lexer/Lexer.this.html" class="public">
+									<code>this</code>
+								</a>
+								<span class="tableEntryAnnotation">(src, sp, ds, tz)</span>
+							</td>
+							<td>This is the more general form of the previous constructor.
+</td>
+						</tr>
+						<tr>
+							<td>
+								<a href="../../dlox/lexer/Lexer.this.html" class="public">
+									<code>this</code>
+								</a>
+								<span class="tableEntryAnnotation">(src, tz)</span>
+							</td>
+							<td>This constructor uses default separator and discarding_separator
+ associative arrays.
+</td>
+						</tr>
+					</table>
+				</section>
+				<section><h2>Methods</h2>
+					<table>
+						<col class="caption"/>
+						<tr>
+							<th>Name</th><th>Description</th>
+						</tr>
+						<tr>
+							<td>
+								<a href="../../dlox/lexer/Lexer.next_symbol.html" class="public">
+									<code>next_symbol</code>
+								</a>
+								<span class="tableEntryAnnotation">()</span>
+							</td>
+							<td>Returns next symbol, advances cursor. Returns Epsilon (0) on file end.
+</td>
+						</tr>
+					</table>
+				</section>
+				<section><h2>Inner structs</h2>
+					<table>
+						<col class="caption"/>
+						<tr>
+							<th>Name</th><th>Description</th>
+						</tr>
+						<tr>
+							<td>
+								<a href="../../dlox/lexer/Lexer.Token.html" class="public">
+									<code>Token</code>
+								</a>
+							</td>
+							<td>Internal token type for packaging semantic information with the token
+</td>
+						</tr>
+					</table>
+				</section><section><h2>Parameters</h2>
+<table><col class="caption"><tr><th>Name</th><th>Description</th></tr>
+<tr><td id="T">T</td><td> Token enumeration type that is convertable to integer. There must be
+          a epsilon token that has the 0 value.</td></tr>
+</table>
+</section>
+<section><h2>Example</h2>
+<p>---d
+ enum Tokens {
+     Epsilon = 0
+     Identifier,
+     OpenParen,
+     CloseParen,
+ }
+ Tokens tokenizer(string lex) {
+     if (lex == "(")
+         return Tokens.OpenParen;
+     else if (lex == ")")
+         return Tokens.CloseParen;
+     return Tokens.Identifier;
+ }
+ string source_code = "abc ((def) ghi)";
+ // We use an alias for conciseness.
+ alias MyLexer = Lexer!Tokens;
+ auto lexer = Lexer!Tokens(source_code, &tokenizer);
+ MyLexer.Token tk = lexer.next_symbol();
+ while (tk.type != Tokens.Epsilon) {
+     // Do what ever you want to the token
+     tk = lexer.next_symbol();
+ }
+</p>
+<pre class="code"><code class="lang-d"></code></pre>
+</section>
+
+			</div>
+			<footer>
+				<div id="license-info">
+					
+				</div>
+			</footer>
+		</div>
+	</body>
+</html>

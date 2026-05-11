@@ -1,0 +1,316 @@
+[
+	{
+		"kind": "module",
+		"file": "source/dlox/cst.d",
+		"members": [
+			{
+				"parameters": [
+					{
+						"kind": "type",
+						"name": "Sym"
+					}
+				],
+				"line": 14,
+				"kind": "template",
+				"char": 1,
+				"members": [
+					{
+						"line": 14,
+						"kind": "struct",
+						"char": 1,
+						"members": [
+							{
+								"parameters": [
+									{
+										"type": "Sym",
+										"name": "type"
+									}
+								],
+								"line": 26,
+								"kind": "function",
+								"char": 10,
+								"name": "addChild",
+								"type": "void(Sym type)",
+								"endchar": 5,
+								"endline": 29,
+								"comment": " Adds child with the `type`.\n\n Params:\n      type = Content of the child.\n"
+							},
+							{
+								"parameters": [
+									{
+										"deco": "i",
+										"default": "0",
+										"name": "level"
+									}
+								],
+								"line": 32,
+								"kind": "function",
+								"char": 10,
+								"name": "print",
+								"type": "void(int level = 0)",
+								"endchar": 5,
+								"endline": 43,
+								"comment": "Prints the node and all its children in a readable way.\n"
+							}
+						],
+						"name": "CstNode",
+						"protection": "public"
+					}
+				],
+				"name": "CstNode",
+				"protection": "public",
+				"comment": " Concrete Syntax Tree Node.\n\n Params:\n      Sym = Symbol type, could be anything\n"
+			}
+		],
+		"comment": "Concrete Syntax Tree Node.\n",
+		"name": "dlox.cst"
+	},
+	{
+		"kind": "module",
+		"file": "source/dlox/lexer.d",
+		"members": [
+			{
+				"parameters": [
+					{
+						"kind": "type",
+						"deco": "i",
+						"name": "T"
+					}
+				],
+				"line": 40,
+				"kind": "template",
+				"char": 1,
+				"members": [
+					{
+						"line": 40,
+						"kind": "struct",
+						"char": 1,
+						"members": [
+							{
+								"line": 42,
+								"kind": "struct",
+								"char": 5,
+								"members": [
+									{
+										"kind": "variable",
+										"line": 45,
+										"char": 16,
+										"type": "string",
+										"comment": "String slice from the source code of the token\n",
+										"name": "seminfo"
+									}
+								],
+								"name": "Token",
+								"protection": "public",
+								"comment": "Internal token type for packaging semantic information with the token\n"
+							},
+							{
+								"parameters": [
+									{
+										"type": "string",
+										"name": "src"
+									},
+									{
+										"type": "T function(string lex)",
+										"name": "tz"
+									}
+								],
+								"line": 62,
+								"kind": "constructor",
+								"char": 5,
+								"name": "this",
+								"type": "(string src, T function(string lex) tz)",
+								"endchar": 5,
+								"endline": 69,
+								"comment": " This constructor uses default separator and discarding_separator\n associative arrays.\n\n Params:\n      src = Source code you want to lex.\n      tz = Tokenizer function that takes lexemes and returns Tokens.\n"
+							},
+							{
+								"parameters": [
+									{
+										"type": "string",
+										"name": "src"
+									},
+									{
+										"type": "bool[char]",
+										"name": "sp"
+									},
+									{
+										"type": "bool[char]",
+										"name": "ds"
+									},
+									{
+										"type": "T function(string lex)",
+										"name": "tz"
+									}
+								],
+								"line": 82,
+								"kind": "constructor",
+								"char": 5,
+								"name": "this",
+								"type": "(string src, bool[char] sp, bool[char] ds, T function(string lex) tz)",
+								"endchar": 5,
+								"endline": 88,
+								"comment": " This is the more general form of the previous constructor.\n\n Params:\n      src = Source code you want to lex.\n      sp = Associative array of separators. Separators should be set to\n      true.\n      ds = Same as sp but these get discarded, useful for discarding\n      whitespace.\n      tz = Tokenizer function that takes lexemes and returns Tokens.\n"
+							},
+							{
+								"line": 91,
+								"kind": "function",
+								"char": 11,
+								"name": "next_symbol",
+								"type": "Token()",
+								"endchar": 5,
+								"endline": 109,
+								"comment": "Returns next symbol, advances cursor. Returns Epsilon (0) on file end.\n"
+							}
+						],
+						"name": "Lexer",
+						"protection": "public"
+					}
+				],
+				"name": "Lexer",
+				"protection": "public",
+				"comment": " Lexer struct is a really customizable lexer.\n\n Params:\n      T = Token enumeration type that is convertable to integer. There must be\n          a epsilon token that has the 0 value.\n\n Example:\n ---d\n enum Tokens {\n     Epsilon = 0\n     Identifier,\n     OpenParen,\n     CloseParen,\n }\n Tokens tokenizer(string lex) {\n     if (lex == \"(\")\n         return Tokens.OpenParen;\n     else if (lex == \")\")\n         return Tokens.CloseParen;\n     return Tokens.Identifier;\n }\n string source_code = \"abc ((def) ghi)\";\n // We use an alias for conciseness.\n alias MyLexer = Lexer!Tokens;\n auto lexer = Lexer!Tokens(source_code, &tokenizer);\n MyLexer.Token tk = lexer.next_symbol();\n while (tk.type != Tokens.Epsilon) {\n     // Do what ever you want to the token\n     tk = lexer.next_symbol();\n }\n ---\n"
+			}
+		],
+		"comment": "A simple Lexer implementation\n",
+		"name": "dlox.lexer"
+	},
+	{
+		"kind": "module",
+		"file": "source/dlox/package.d",
+		"members": [
+			{
+				"kind": "import",
+				"line": 5,
+				"char": 15,
+				"comment": "Parser\n",
+				"name": "dlox.parser"
+			},
+			{
+				"kind": "import",
+				"line": 7,
+				"char": 15,
+				"comment": "Lexer\n",
+				"name": "dlox.lexer"
+			},
+			{
+				"kind": "import",
+				"line": 9,
+				"char": 15,
+				"comment": "Concrete Syntax Tree\n",
+				"name": "dlox.cst"
+			}
+		],
+		"comment": "Dlox: a predictive parser written in D\n",
+		"name": "dlox"
+	},
+	{
+		"kind": "module",
+		"file": "source/dlox/parser.d",
+		"members": [
+			{
+				"parameters": [
+					{
+						"kind": "type",
+						"name": "T"
+					},
+					{
+						"kind": "type",
+						"name": "N"
+					}
+				],
+				"line": 32,
+				"kind": "template",
+				"char": 1,
+				"members": [
+					{
+						"line": 32,
+						"kind": "struct",
+						"char": 1,
+						"members": [
+							{
+								"line": 56,
+								"kind": "function",
+								"char": 10,
+								"name": "initFirst",
+								"type": "void()",
+								"endchar": 5,
+								"endline": 122,
+								"comment": " Initializers \"First\" sets of each nonterminal.\n\n First set of a nonterminal includes every token that can be the leftmost\n symbol of that nonterminal.\n Example: For this production\n A = xyz | bcde | efg\n First(A) = {x, b, e}\n"
+							},
+							{
+								"parameters": [
+									{
+										"type": "N",
+										"name": "starter"
+									}
+								],
+								"line": 134,
+								"kind": "function",
+								"char": 10,
+								"name": "initFollow",
+								"type": "void(N starter)",
+								"endchar": 5,
+								"endline": 168,
+								"comment": " Initializes 'Follow' sets of each nonterminal.\n\n Follow set of a nonterminal contains every token that can appear right\n after that nonterminal ends.\n Example: For this grammer.\n A = xBy | zBq | uBw\n B = a | b // definition of B doesn't matter in this case\n Follow(A) = {y, q, w}\n"
+							},
+							{
+								"line": 173,
+								"kind": "function",
+								"char": 10,
+								"name": "buildParsingTable",
+								"type": "void()",
+								"endchar": 5,
+								"endline": 184,
+								"comment": " Builds LL(1) parsing table using first and follow sets.\n"
+							},
+							{
+								"parameters": [
+									{
+										"type": "TokenInfo[]",
+										"name": "token_list"
+									}
+								],
+								"line": 194,
+								"kind": "function",
+								"char": 11,
+								"name": "parse",
+								"type": "CNode(TokenInfo[] token_list)",
+								"endchar": 5,
+								"endline": 246,
+								"comment": " Parses the given token_list.\n\n Returns: Root of the parse tree\n"
+							},
+							{
+								"parameters": [
+									{
+										"type": "GrammarSymbol[][][N]",
+										"name": "rules"
+									},
+									{
+										"type": "N",
+										"name": "start"
+									}
+								],
+								"line": 258,
+								"kind": "constructor",
+								"char": 5,
+								"name": "this",
+								"type": "(GrammarSymbol[][][N] rules, N start)",
+								"endchar": 5,
+								"endline": 265,
+								"comment": " Constructs the parser structure.\n\n Params:\n      rules = Grammar. Keys correspond to nonterminals, values are\n              productions of that nonterminal. A production is an array of\n              alternatives which all consist of GrammarSymbols.\n      start = Starting symbol. This is what will be matched when parse\n              gets called.\n"
+							}
+						],
+						"name": "Parser",
+						"protection": "public"
+					}
+				],
+				"name": "Parser",
+				"protection": "public",
+				"comment": " Parser template creates a LL(1) parser for the given grammar and\n tokens.\n\n Params:\n     T = Token enumeration type. T should has 0 reserved as EOF/EPSILON.\n         Naming doesn't matter but don't use 0 for different things.\n     N = Nonterminal enumeration type\n"
+			}
+		],
+		"comment": "Predictive Parser Implementation\n",
+		"name": "dlox.parser"
+	}
+]

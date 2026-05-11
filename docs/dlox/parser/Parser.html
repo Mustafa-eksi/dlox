@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0"/>
+		<title>Struct Parser</title>
+		<link rel="stylesheet" href="../../css/style.min.css"/>
+		<script type="text/javascript" src="../../js/script.min.js"></script>
+	</head>
+	<body onload="setupDdox();">
+		<header></header>
+		<nav id="main-nav">
+			<div>
+				<noscript>
+					<p style="color: red">The search functionality needs JavaScript enabled</p>
+				</noscript>
+				<div id="symbolSearchPane" style="display: none">
+					<form action="#" method="GET">
+						<input id="symbolSearch" type="text" name="q" placeholder="Search for symbols" autocomplete="off" onchange="performSymbolSearch(24);" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();" autofocus/>
+					</form>
+					<ul id="symbolSearchResults" class="symbolList" style="display: none"></ul><script type="application/javascript" src="../../symbols.js"></script><script type="application/javascript">var symbolSearchRootDir = "../../";
+document.getElementById('symbolSearchPane').style.display = 'block';</script>
+				</div>
+				<ul class="tree-view">
+					<li class="tree-view ">
+						<div class="package ">
+							<a href="../../dlox.html">dlox</a>
+						</div>
+				<ul class="tree-view">
+					<li>
+						<div class="module ">
+							<a href="../../dlox/cst.html">cst</a>
+						</div>
+					</li>
+					<li>
+						<div class="module ">
+							<a href="../../dlox/lexer.html">lexer</a>
+						</div>
+					</li>
+					<li>
+						<div class="module selected">
+							<a href="../../dlox/parser.html">parser</a>
+						</div>
+					</li>
+				</ul>
+					</li>
+				</ul>
+			</div>
+			<p id="main-nav-footer">
+				Built with<a href="https://github.com/MartinNowak/scod">scod</a>
+			</p>
+		</nav>
+		<div id="main-contents">
+			<div>
+				<h1>Struct Parser</h1><p>Parser template creates a LL(1) parser for the given grammar and
+ tokens.
+</p>
+				<div class="prototype">
+					<code class="lang-d">
+						<div class="single-prototype">
+				<span class="kwd">struct</span> <span class="typ">Parser</span>(T, N)<span class="pun">;</span>
+						</div>
+					</code>
+				</div>
+				<section></section>
+
+				<section><h2>Constructors</h2>
+					<table>
+						<col class="caption"/>
+						<tr>
+							<th>Name</th><th>Description</th>
+						</tr>
+						<tr>
+							<td>
+								<a href="../../dlox/parser/Parser.this.html" class="public">
+									<code>this</code>
+								</a>
+								<span class="tableEntryAnnotation">(rules, start)</span>
+							</td>
+							<td>Constructs the parser structure.
+</td>
+						</tr>
+					</table>
+				</section>
+				<section><h2>Methods</h2>
+					<table>
+						<col class="caption"/>
+						<tr>
+							<th>Name</th><th>Description</th>
+						</tr>
+						<tr>
+							<td>
+								<a href="../../dlox/parser/Parser.buildParsingTable.html" class="public">
+									<code>buildParsingTable</code>
+								</a>
+								<span class="tableEntryAnnotation">()</span>
+							</td>
+							<td>Builds LL(1) parsing table using first and follow sets.
+</td>
+						</tr>
+						<tr>
+							<td>
+								<a href="../../dlox/parser/Parser.initFirst.html" class="public">
+									<code>initFirst</code>
+								</a>
+								<span class="tableEntryAnnotation">()</span>
+							</td>
+							<td>Initializers "First" sets of each nonterminal.
+</td>
+						</tr>
+						<tr>
+							<td>
+								<a href="../../dlox/parser/Parser.initFollow.html" class="public">
+									<code>initFollow</code>
+								</a>
+								<span class="tableEntryAnnotation">(starter)</span>
+							</td>
+							<td>Initializes 'Follow' sets of each nonterminal.
+</td>
+						</tr>
+						<tr>
+							<td>
+								<a href="../../dlox/parser/Parser.parse.html" class="public">
+									<code>parse</code>
+								</a>
+								<span class="tableEntryAnnotation">(token_list)</span>
+							</td>
+							<td>Parses the given token_list.
+</td>
+						</tr>
+					</table>
+				</section><section><h2>Parameters</h2>
+<table><col class="caption"><tr><th>Name</th><th>Description</th></tr>
+<tr><td id="T">T</td><td> Token enumeration type. T should has 0 reserved as EOF/EPSILON.
+         Naming doesn't matter but don't use 0 for different things.</td></tr>
+<tr><td id="N">N</td><td> Nonterminal enumeration type</td></tr>
+</table>
+</section>
+
+			</div>
+			<footer>
+				<div id="license-info">
+					
+				</div>
+			</footer>
+		</div>
+	</body>
+</html>
