@@ -153,6 +153,7 @@ int main(string[] args)
         writeln("Error: Can't access file");
         return -1;
     }
+
     string source_code = to!string(read(source_filename));
     auto lexer = Lexer!Tokens(source_code, SEPARATORS, DISCARDING_SEPARATORS, &tokenizer);
     auto tk = lexer.next_symbol();

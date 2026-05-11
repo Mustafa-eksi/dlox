@@ -15,3 +15,5 @@ dlox-test-*
 *.o
 *.obj
 *.lst
+simple_term_factor
+linter_output.txt

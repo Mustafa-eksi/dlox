@@ -41,6 +41,10 @@ unittest {
     foreach (ref ch; root.children) {
         ch.addChild(Tok.PLUS);
     }
-    root.print();
-    root.children[0].print();
+    foreach (ref ch; root.children) {
+        assert(ch.parent == &root && ch.type == Tok.IDENTIFIER);
+        foreach (ref ch2; ch.children) {
+            assert(ch2.parent == ch && ch2.type == Tok.PLUS);
+        }
+    }
 }

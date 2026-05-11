@@ -6,6 +6,17 @@
 	],
 	"copyright": "Copyright © 2026, Mustafa Eksi",
 	"name": "dlox",
-    "buildOptions": ["debugMode"],
-    "defaultCompiler": "dmd"
+    "targetType": "library",
+    "configurations": [
+        {
+            "name": "dlox",
+            "targetType": "library"
+        },
+        {
+            "name": "simple_term_factor",
+            "mainSourceFile": "./tests/simple_term_factor.d",
+            "targetType": "executable",
+            "targetName": "simple_term_factor"
+        }
+    ]
 }
