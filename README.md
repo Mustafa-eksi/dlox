@@ -1,4 +1,5 @@
 # Predictive Parser Written in D
+It includes a handy lexer too!
 
 # Documentation
 You can access documentation of this project from this url:
