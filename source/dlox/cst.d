@@ -43,6 +43,7 @@ struct CstNode(Sym) {
     }
 }
 
+///
 unittest {
     enum Tok {
         EPSILON,
@@ -60,6 +61,35 @@ unittest {
         assert(ch.parent == &root && ch.type == Tok.IDENTIFIER);
         foreach (ref ch2; ch.children) {
             assert(ch2.parent == ch && ch2.type == Tok.PLUS);
+        }
+    }
+}
+
+unittest {
+    import std.random : uniform;
+    import std.range : front;
+    for (int fuzz = 0; fuzz < 50; fuzz++) {
+        alias CNode = CstNode!int;
+        CNode root = CNode(0);
+        int count = uniform(50, 100);
+        int level = uniform(10, 15);
+        for (int i = 0; i < count; i++) {
+            root.addChild(i);
+            CNode *c = root.children[i];
+            for (int j = 0; j < level; j++) {
+                c.addChild(i*(j+1));
+                c = c.children.front;
+            }
+        }
+        for (int i = 0; i < count; i++) {
+            assert(root.children[i].type == i);
+            CNode *c = root.children[i];
+            c = c.children.front;
+            for (int j = 0; j < level-1; j++) {
+                assert(c.children.length == 1);
+                assert(c.type == i*(j+1));
+                c = c.children.front;
+            }
         }
     }
 }

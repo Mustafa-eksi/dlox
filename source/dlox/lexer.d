@@ -12,7 +12,7 @@ import std.ascii : isWhite;
  +          a epsilon token that has the 0 value.
  +
  + Example:
- + ---d
+ + ---
  + enum Tokens {
  +     Epsilon = 0
  +     Identifier,
@@ -63,7 +63,7 @@ struct Lexer(T: int) {
         source_code = src;
         cursor = 0;
         separators = [';': true, ',': true, '\'': true, '*': true, '(': true,
-                   ')': true, '{': true, '}': true];
+                   ')': true, '{': true, '}': true, '+': true];
         discarding_separators = [' ': true, '\n': true];
         tokenizer = tz;
     }
@@ -87,7 +87,10 @@ struct Lexer(T: int) {
         tokenizer = tz;
     }
 
-    /// Returns next symbol, advances cursor. Returns Epsilon (0) on file end.
+    /++
+     + Advances to next symbol.
+     + Returns: Next token, advances cursor. Returns Epsilon (0) on file end.
+     +/
     Token next_symbol() {
         // TODO: change isWhite with separators and discarding separators
         while (cursor < source_code.length && source_code[cursor] in
@@ -101,7 +104,8 @@ struct Lexer(T: int) {
                 && source_code[cursor] !in discarding_separators) {
             cursor++;
         }
-        if (source_code[cursor] in separators && start == cursor) {
+        if (cursor < source_code.length && source_code[cursor] in separators && start == cursor)
+        {
             cursor++;
         }
         auto ty = tokenizer(source_code[start..cursor]);
@@ -109,3 +113,103 @@ struct Lexer(T: int) {
     }
 }
 
+T __unittest_tokenizer(T)(string lex) {
+    import std.range : empty;
+    if (lex == "+")
+        return T.Plus;
+    else if (lex.empty)
+        return T.Epsilon;
+    else
+        return T.Identifier;
+}
+
+///
+unittest {
+    enum Tokens {
+        Epsilon = 0,
+        Identifier,
+        Plus,
+    }
+    alias mLexer = Lexer!Tokens;
+    string source = "10 + 15 + 20";
+    mLexer lexer = mLexer(source, &__unittest_tokenizer!Tokens);
+    Tokens[] tokens;
+    auto tk = lexer.next_symbol();
+    while (tk.type != Tokens.Epsilon) {
+        tokens ~= tk.type;
+        tk = lexer.next_symbol();
+    }
+    assert(tokens == [
+            Tokens.Identifier, Tokens.Plus, Tokens.Identifier, Tokens.Plus,
+            Tokens.Identifier
+        ]);
+}
+
+unittest {
+    import std.random : uniform;
+    import std.conv : to;
+    import std.stdio : writeln;
+
+    enum Tokens {
+        Epsilon = 0,
+        Identifier,
+        Plus,
+    }
+    alias mLexer = Lexer!Tokens;
+    string generateIdentifier() {
+        ulong length = uniform(1, 10);
+        string output;
+        for (int i = 0; i < length; i++) {
+            output ~= uniform('a', 'z'+1);
+        }
+        return output;
+    }
+    Tokens[] generateRandomTokens() {
+        ulong length = uniform(10, 15);
+        Tokens[] output;
+        for (int i = 0; i < length; i++) {
+            // FIXME: get first and last instead of hardcoding
+            output ~= uniform(Tokens.Identifier, Tokens.Plus+1).to!Tokens;
+        }
+        return output;
+    }
+    string generateSource(Tokens[] tokens) {
+        string output;
+        ulong space_count = uniform(0, 20);
+        for (int si = 0; si < space_count; si++)
+            output ~= ' ';
+        foreach (tok; tokens) {
+            if (tok == Tokens.Identifier) {
+                output ~= generateIdentifier();
+                space_count = uniform(1, 20);
+            } else if (tok == Tokens.Plus) {
+                output ~= '+';
+                space_count = uniform(0, 20);
+            } else {
+                assert(false);
+            }
+            for (int si = 0; si < space_count; si++)
+                output ~= ' ';
+        }
+        return output;
+    }
+    for (int fuzz = 0; fuzz < 100; fuzz++) {
+        Tokens[] expected = generateRandomTokens();
+        string source = generateSource(expected);
+        mLexer lexer = mLexer(source, &__unittest_tokenizer!Tokens);
+        auto tk = lexer.next_symbol();
+        ulong i = 0;
+        while (tk.type != Tokens.Epsilon) {
+            if (tk.type != expected[i]) {
+                writeln("Source Code: '", source, "'");
+                writeln("Source Cursor: ", lexer.cursor);
+                writeln("Expected: ", expected[i]);
+                writeln("Found: ", tk.type);
+                writeln("Expected Array: ", expected);
+                assert(false);
+            }
+            tk = lexer.next_symbol();
+            i++;
+        }
+    }
+}
