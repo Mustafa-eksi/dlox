@@ -105,7 +105,7 @@ document.getElementById('symbolSearchPane').style.display = 'block';</script>
 								</a>
 								<span class="tableEntryAnnotation">()</span>
 							</td>
-							<td>Returns next symbol, advances cursor. Returns Epsilon (0) on file end.
+							<td>Advances to next symbol.
 </td>
 						</tr>
 					</table>
@@ -133,31 +133,50 @@ document.getElementById('symbolSearchPane').style.display = 'block';</script>
 </table>
 </section>
 <section><h2>Example</h2>
-<p>---d
- enum Tokens {
-     Epsilon = 0
-     Identifier,
-     OpenParen,
-     CloseParen,
- }
- Tokens tokenizer(string lex) {
-     if (lex == "(")
-         return Tokens.OpenParen;
-     else if (lex == ")")
-         return Tokens.CloseParen;
-     return Tokens.Identifier;
- }
- string source_code = "abc ((def) ghi)";
- // We use an alias for conciseness.
- alias MyLexer = Lexer!Tokens;
- auto lexer = Lexer!Tokens(source_code, &tokenizer);
- MyLexer.Token tk = lexer.next_symbol();
- while (tk.type != Tokens.Epsilon) {
-     // Do what ever you want to the token
-     tk = lexer.next_symbol();
- }
-</p>
-<pre class="code"><code class="lang-d"></code></pre>
+<pre class="code"><code class="lang-d"><span class="kwd">enum </span><span class="typ">Tokens </span><span class="pun">{
+    </span><span class="typ">Epsilon </span><span class="pun">= </span><span class="lit">0
+    </span><span class="typ">Identifier</span><span class="pun">,
+    </span><span class="typ">OpenParen</span><span class="pun">,
+    </span><span class="typ">CloseParen</span><span class="pun">,
+}
+</span><span class="typ">Tokens </span><span class="pln">tokenizer</span><span class="pun">(</span><span class="typ">string </span><span class="pln">lex</span><span class="pun">) {
+    </span><span class="kwd">if </span><span class="pun">(</span><span class="pln">lex </span><span class="pun">== </span><span class="str">"("</span><span class="pun">)
+        </span><span class="kwd">return </span><span class="typ">Tokens<wbr/></span><span class="pun">.</span><span class="typ">OpenParen</span><span class="pun">;
+    </span><span class="kwd">else if </span><span class="pun">(</span><span class="pln">lex </span><span class="pun">== </span><span class="str">")"</span><span class="pun">)
+        </span><span class="kwd">return </span><span class="typ">Tokens<wbr/></span><span class="pun">.</span><span class="typ">CloseParen</span><span class="pun">;
+    </span><span class="kwd">return </span><span class="typ">Tokens<wbr/></span><span class="pun">.</span><span class="typ">Identifier</span><span class="pun">;
+}
+</span><span class="typ">string </span><span class="pln">source_code </span><span class="pun">= </span><span class="str">"abc ((def) ghi)"</span><span class="pun">;
+</span><span class="com">// We use an alias for conciseness.
+</span><span class="kwd">alias </span><span class="typ">MyLexer </span><span class="pun">= </span><span class="typ">Lexer</span><span class="pun">!</span><span class="typ">Tokens</span><span class="pun">;
+</span><span class="kwd">auto </span><span class="pln">lexer </span><span class="pun">= </span><span class="typ">Lexer</span><span class="pun">!</span><span class="typ">Tokens</span><span class="pun">(</span><span class="pln">source_code</span><span class="pun">, &amp;</span><span class="pln">tokenizer</span><span class="pun">);
+</span><span class="typ">MyLexer<wbr/></span><span class="pun">.</span><span class="typ">Token </span><span class="pln">tk </span><span class="pun">= </span><span class="pln">lexer<wbr/></span><span class="pun">.</span><span class="pln">next_symbol</span><span class="pun">();
+</span><span class="kwd">while </span><span class="pun">(</span><span class="pln">tk<wbr/></span><span class="pun">.</span><span class="pln">type </span><span class="pun">!= </span><span class="typ">Tokens<wbr/></span><span class="pun">.</span><span class="typ">Epsilon</span><span class="pun">) {
+    </span><span class="com">// Do what ever you want to the token
+    </span><span class="pln">tk </span><span class="pun">= </span><span class="pln">lexer<wbr/></span><span class="pun">.</span><span class="pln">next_symbol</span><span class="pun">();
+}</span></code></pre>
+</section>
+<section><h2>Example</h2>
+
+<pre class="code"><code class="lang-d"><span class="kwd">enum </span><span class="typ">Tokens </span><span class="pun">{
+    </span><span class="typ">Epsilon </span><span class="pun">= </span><span class="lit">0</span><span class="pun">,
+    </span><span class="typ">Identifier</span><span class="pun">,
+    </span><span class="typ">Plus</span><span class="pun">,
+}
+</span><span class="kwd">alias </span><span class="pln">mLexer </span><span class="pun">= </span><span class="typ">Lexer</span><span class="pun">!</span><span class="typ">Tokens</span><span class="pun">;
+</span><span class="typ">string </span><span class="pln">source </span><span class="pun">= </span><span class="str">"10 + 15 + 20"</span><span class="pun">;
+</span><span class="pln">mLexer lexer </span><span class="pun">= </span><span class="pln">mLexer</span><span class="pun">(</span><span class="pln">source</span><span class="pun">, &amp;</span><span class="pln">__unittest_tokenizer</span><span class="pun">!</span><span class="typ">Tokens</span><span class="pun">);
+</span><span class="typ">Tokens</span><span class="pun">[] </span><span class="pln">tokens</span><span class="pun">;
+</span><span class="kwd">auto </span><span class="pln">tk </span><span class="pun">= </span><span class="pln">lexer<wbr/></span><span class="pun">.</span><span class="pln">next_symbol</span><span class="pun">();
+</span><span class="kwd">while </span><span class="pun">(</span><span class="pln">tk<wbr/></span><span class="pun">.</span><span class="pln">type </span><span class="pun">!= </span><span class="typ">Tokens<wbr/></span><span class="pun">.</span><span class="typ">Epsilon</span><span class="pun">) {
+    </span><span class="pln">tokens </span><span class="pun">~= </span><span class="pln">tk<wbr/></span><span class="pun">.</span><span class="pln">type</span><span class="pun">;
+    </span><span class="pln">tk </span><span class="pun">= </span><span class="pln">lexer<wbr/></span><span class="pun">.</span><span class="pln">next_symbol</span><span class="pun">();
+}
+</span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">tokens </span><span class="pun">== [
+        </span><span class="typ">Tokens<wbr/></span><span class="pun">.</span><span class="typ">Identifier</span><span class="pun">, </span><span class="typ">Tokens<wbr/></span><span class="pun">.</span><span class="typ">Plus</span><span class="pun">, </span><span class="typ">Tokens<wbr/></span><span class="pun">.</span><span class="typ">Identifier</span><span class="pun">, </span><span class="typ">Tokens<wbr/></span><span class="pun">.</span><span class="typ">Plus</span><span class="pun">,
+        </span><span class="typ">Tokens<wbr/></span><span class="pun">.</span><span class="typ">Identifier
+    </span><span class="pun">]);
+</span></code></pre>
 </section>
 
 			</div>

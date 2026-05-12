@@ -95,6 +95,28 @@ document.getElementById('symbolSearchPane').style.display = 'block';</script>
 <tr><td id="Sym">Sym</td><td> Symbol type, could be anything</td></tr>
 </table>
 </section>
+<section><h2>Example</h2>
+
+<pre class="code"><code class="lang-d"><span class="kwd">enum </span><span class="typ">Tok </span><span class="pun">{
+    </span><span class="pln">EPSILON</span><span class="pun">,
+    </span><span class="pln">IDENTIFIER</span><span class="pun">,
+    </span><span class="pln">PLUS</span><span class="pun">,
+}
+</span><span class="typ">CstNode</span><span class="pun">!</span><span class="typ">Tok </span><span class="pln">root </span><span class="pun">= </span><span class="typ">CstNode</span><span class="pun">!</span><span class="typ">Tok</span><span class="pun">(</span><span class="typ">Tok<wbr/></span><span class="pun">.</span><span class="pln">EPSILON</span><span class="pun">);
+</span><span class="pln">root<wbr/></span><span class="pun">.</span><span class="pln">addChild</span><span class="pun">(</span><span class="typ">Tok<wbr/></span><span class="pun">.</span><span class="pln">IDENTIFIER</span><span class="pun">);
+</span><span class="pln">root<wbr/></span><span class="pun">.</span><span class="pln">addChild</span><span class="pun">(</span><span class="typ">Tok<wbr/></span><span class="pun">.</span><span class="pln">IDENTIFIER</span><span class="pun">);
+</span><span class="pln">root<wbr/></span><span class="pun">.</span><span class="pln">addChild</span><span class="pun">(</span><span class="typ">Tok<wbr/></span><span class="pun">.</span><span class="pln">IDENTIFIER</span><span class="pun">);
+</span><span class="kwd">foreach </span><span class="pun">(</span><span class="kwd">ref </span><span class="pln">ch</span><span class="pun">; </span><span class="pln">root<wbr/></span><span class="pun">.</span><span class="pln">children</span><span class="pun">) {
+    </span><span class="pln">ch<wbr/></span><span class="pun">.</span><span class="pln">addChild</span><span class="pun">(</span><span class="typ">Tok<wbr/></span><span class="pun">.</span><span class="pln">PLUS</span><span class="pun">);
+}
+</span><span class="kwd">foreach </span><span class="pun">(</span><span class="kwd">ref </span><span class="pln">ch</span><span class="pun">; </span><span class="pln">root<wbr/></span><span class="pun">.</span><span class="pln">children</span><span class="pun">) {
+    </span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">ch<wbr/></span><span class="pun">.</span><span class="pln">parent </span><span class="pun">== &amp;</span><span class="pln">root </span><span class="pun">&amp;&amp; </span><span class="pln">ch<wbr/></span><span class="pun">.</span><span class="pln">type </span><span class="pun">== </span><span class="typ">Tok<wbr/></span><span class="pun">.</span><span class="pln">IDENTIFIER</span><span class="pun">);
+    </span><span class="kwd">foreach </span><span class="pun">(</span><span class="kwd">ref </span><span class="pln">ch2</span><span class="pun">; </span><span class="pln">ch<wbr/></span><span class="pun">.</span><span class="pln">children</span><span class="pun">) {
+        </span><span class="kwd">assert</span><span class="pun">(</span><span class="pln">ch2<wbr/></span><span class="pun">.</span><span class="pln">parent </span><span class="pun">== </span><span class="pln">ch </span><span class="pun">&amp;&amp; </span><span class="pln">ch2<wbr/></span><span class="pun">.</span><span class="pln">type </span><span class="pun">== </span><span class="typ">Tok<wbr/></span><span class="pun">.</span><span class="pln">PLUS</span><span class="pun">);
+    }
+}
+</span></code></pre>
+</section>
 
 			</div>
 			<footer>

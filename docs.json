@@ -59,7 +59,7 @@
 				],
 				"name": "CstNode",
 				"protection": "public",
-				"comment": " Concrete Syntax Tree Node.\n\n Params:\n      Sym = Symbol type, could be anything\n"
+				"comment": " Concrete Syntax Tree Node.\n\n Params:\n      Sym = Symbol type, could be anything\nExample:\n$(DDOX_UNITTEST_HEADER __unittest_L47_C1)\n---\nenum Tok {\n    EPSILON,\n    IDENTIFIER,\n    PLUS,\n}\nCstNode!Tok root = CstNode!Tok(Tok.EPSILON);\nroot.addChild(Tok.IDENTIFIER);\nroot.addChild(Tok.IDENTIFIER);\nroot.addChild(Tok.IDENTIFIER);\nforeach (ref ch; root.children) {\n    ch.addChild(Tok.PLUS);\n}\nforeach (ref ch; root.children) {\n    assert(ch.parent == &root && ch.type == Tok.IDENTIFIER);\n    foreach (ref ch2; ch.children) {\n        assert(ch2.parent == ch && ch2.type == Tok.PLUS);\n    }\n}\n\n---\n$(DDOX_UNITTEST_FOOTER __unittest_L47_C1)\n"
 			}
 		],
 		"comment": "Concrete Syntax Tree Node.\n",
@@ -153,14 +153,14 @@
 								"comment": " This is the more general form of the previous constructor.\n\n Params:\n      src = Source code you want to lex.\n      sp = Associative array of separators. Separators should be set to\n      true.\n      ds = Same as sp but these get discarded, useful for discarding\n      whitespace.\n      tz = Tokenizer function that takes lexemes and returns Tokens.\n"
 							},
 							{
-								"line": 91,
+								"line": 94,
 								"kind": "function",
 								"char": 11,
 								"name": "next_symbol",
 								"type": "Token()",
 								"endchar": 5,
-								"endline": 109,
-								"comment": "Returns next symbol, advances cursor. Returns Epsilon (0) on file end.\n"
+								"endline": 113,
+								"comment": " Advances to next symbol.\n Returns: Next token, advances cursor. Returns Epsilon (0) on file end.\n"
 							}
 						],
 						"name": "Lexer",
@@ -169,7 +169,7 @@
 				],
 				"name": "Lexer",
 				"protection": "public",
-				"comment": " Lexer struct is a really customizable lexer.\n\n Params:\n      T = Token enumeration type that is convertable to integer. There must be\n          a epsilon token that has the 0 value.\n\n Example:\n ---d\n enum Tokens {\n     Epsilon = 0\n     Identifier,\n     OpenParen,\n     CloseParen,\n }\n Tokens tokenizer(string lex) {\n     if (lex == \"(\")\n         return Tokens.OpenParen;\n     else if (lex == \")\")\n         return Tokens.CloseParen;\n     return Tokens.Identifier;\n }\n string source_code = \"abc ((def) ghi)\";\n // We use an alias for conciseness.\n alias MyLexer = Lexer!Tokens;\n auto lexer = Lexer!Tokens(source_code, &tokenizer);\n MyLexer.Token tk = lexer.next_symbol();\n while (tk.type != Tokens.Epsilon) {\n     // Do what ever you want to the token\n     tk = lexer.next_symbol();\n }\n ---\n"
+				"comment": " Lexer struct is a really customizable lexer.\n\n Params:\n      T = Token enumeration type that is convertable to integer. There must be\n          a epsilon token that has the 0 value.\n\n Example:\n ---\n enum Tokens {\n     Epsilon = 0\n     Identifier,\n     OpenParen,\n     CloseParen,\n }\n Tokens tokenizer(string lex) {\n     if (lex == \"(\")\n         return Tokens.OpenParen;\n     else if (lex == \")\")\n         return Tokens.CloseParen;\n     return Tokens.Identifier;\n }\n string source_code = \"abc ((def) ghi)\";\n // We use an alias for conciseness.\n alias MyLexer = Lexer!Tokens;\n auto lexer = Lexer!Tokens(source_code, &tokenizer);\n MyLexer.Token tk = lexer.next_symbol();\n while (tk.type != Tokens.Epsilon) {\n     // Do what ever you want to the token\n     tk = lexer.next_symbol();\n }\n ---\nExample:\n$(DDOX_UNITTEST_HEADER __unittest_L127_C1)\n---\nenum Tokens {\n    Epsilon = 0,\n    Identifier,\n    Plus,\n}\nalias mLexer = Lexer!Tokens;\nstring source = \"10 + 15 + 20\";\nmLexer lexer = mLexer(source, &__unittest_tokenizer!Tokens);\nTokens[] tokens;\nauto tk = lexer.next_symbol();\nwhile (tk.type != Tokens.Epsilon) {\n    tokens ~= tk.type;\n    tk = lexer.next_symbol();\n}\nassert(tokens == [\n        Tokens.Identifier, Tokens.Plus, Tokens.Identifier, Tokens.Plus,\n        Tokens.Identifier\n    ]);\n\n---\n$(DDOX_UNITTEST_FOOTER __unittest_L127_C1)\n"
 			}
 		],
 		"comment": "A simple Lexer implementation\n",
