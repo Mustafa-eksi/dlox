@@ -5,7 +5,7 @@ import std.sumtype : SumType, match, has, get;
 import std.typecons : Tuple, tuple;
 import std.conv : to;
 import std.range : empty, back, front, chain;
-import std.algorithm.mutation : stripRight;
+import std.algorithm.mutation : stripRight, remove;
 import std.algorithm.searching : canFind;
 import std.array : assocArray, byPair, popBack;
 import std.stdio : writeln, writefln;
@@ -45,6 +45,35 @@ struct Parser(T, N) {
     int[T][N] follow_table;
 
     /++
+     + Gets first set of the given rule.
+     +
+     + Params:
+     +      nt = Nonterminal of the rule
+     +      alt_idx = Which alternative to get first of.
+     + Returns: First set of the given rule.
+     +/
+    int[T] getFirst(N nt, int alt_idx) {
+        int[T] output;
+        if (rule_list[nt][alt_idx].empty) {
+            output[epsilon] = alt_idx;
+            return output;
+        }
+        auto f = rule_list[nt][alt_idx].front;
+        if (f.has!T) {
+            output[f.get!T] = alt_idx;
+        } else {
+            foreach (f_alt, _; rule_list[f.get!N]) {
+                auto ff = getFirst(f.get!N, f_alt.to!int);
+                output = chain(output.byPair, ff.byPair).assocArray;
+            }
+            foreach (tok, ref alt; output) {
+                alt = alt_idx;
+            }
+        }
+        return output;
+    }
+
+    /++
      + Initializers "First" sets of each nonterminal.
      +
      + First set of a nonterminal includes every token that can be the leftmost
@@ -54,69 +83,14 @@ struct Parser(T, N) {
      + First(A) = {x, b, e}
      +/
     void initFirst() {
-        // TODO: Require epsilon token in 'empty' productions
-        /* Algorithm:
-            For each non-terminal
-                push it to stack
-                while stack is not empty
-                    A = back of the stack
-                    for each alternative of A
-                        if it is empty
-                            rewind the stack and add them epsilon
-                        if alternative has a nonterminal as its first symbol
-                            add it to the stack
-                        else (if it is a token)
-                            rewind the stack and add them that symbol
-         */
-        foreach (nt, r; rule_list) {
-            RuleIndex[] st;
-            st ~= RuleIndex(0, nt);
-
-            while (!st.empty) {
-                const RuleIndex[] cpy_st = st;
-                foreach (i, sub_alt; rule_list[st.back[1]]) {
-                    // writeln("=== ", i);
-                    // writeln(st);
-
-                    st.back[0] = i.to!int;
-                    // FIXME: This is problematic
-                    if (sub_alt.empty) {
-                        // writeln("Subalt empty");
-                        for (int j = cpy_st.length.to!int-1; j >= 0; j--) {
-                            N jnt = cpy_st[j][1];
-                            int jalt = cpy_st[j][0];
-                            if (jnt !in first_table || epsilon !in first_table[jnt])
-                            {
-                                // writefln("     = inserting into -> %s", rs);
-                                first_table[jnt][epsilon] = jalt;
-                            }
-                        }
-                        continue;
-                    }
-
-                    if (sub_alt.front.has!N) {
-                        st ~= RuleIndex(0, sub_alt[0].get!N);
-                        // writefln(" - %s: %d", sub_alt[0].get!N, i);
-                        // writefln("   st: %s", st);
-                        // writefln("   sub_alt: %s", sub_alt);
-                    } else {
-                        // writefln(" = found -> %s", sub_alt[0].get!T);
-                        for (int j = cpy_st.length.to!int-1; j >= 0; j--) {
-                            N jnt = cpy_st[j][1];
-                            int jalt = cpy_st[j][0];
-                            // writeln(jnt, jalt);
-                            if (jnt !in first_table || sub_alt.front.get!T !in
-                                    first_table[jnt]) {
-                                // writefln("     = inserting into -> %s", rs);
-                                first_table[jnt][sub_alt.front.get!T] = jalt;
-                            }
-                        }
-                    }
-                }
-
-                if (cpy_st == st) {
-                    break;
-                }
+        foreach (nt, rule; rule_list) {
+            foreach (alt_idx, _; rule) {
+                auto f = getFirst(nt, alt_idx.to!int);
+                if (nt in first_table)
+                    first_table[nt] = chain(first_table[nt].byPair,
+                        f.byPair).assocArray;
+                else
+                    first_table[nt] = f;
             }
         }
     }
@@ -263,4 +237,55 @@ struct Parser(T, N) {
         initFollow(start);
         buildParsingTable();
     }
+}
+
+///
+unittest {
+    enum Tokens {
+        Epsilon = 0,
+        a, b, c
+    }
+    enum Nonterms {
+        Unknown = 0,
+        A, B, C
+    }
+    alias mParser = Parser!(Tokens, Nonterms);
+    alias GS = mParser.GrammarSymbol;
+    alias GT = mParser.GrammarTable;
+    alias Token = mParser.TokenInfo;
+    /*
+     * A = BCb | CbBa
+     * B = a | c
+     * C = b
+     */
+    GT grammer = [
+        Nonterms.A: [
+            [GS(Nonterms.B), GS(Nonterms.C), GS(Tokens.b)],
+            [GS(Nonterms.C), GS(Tokens.b), GS(Nonterms.B), GS(Tokens.a)]
+        ],
+        Nonterms.B: [[GS(Tokens.a)], [GS(Tokens.c)]],
+        Nonterms.C: [[GS(Tokens.b)]]
+    ];
+    int[Tokens][Nonterms] expected_first = [
+        Nonterms.A: [
+            Tokens.a: 0,
+            Tokens.c: 0,
+            Tokens.b: 1
+        ],
+        Nonterms.B: [
+            Tokens.a: 0,
+            Tokens.c: 1,
+        ],
+        Nonterms.C: [
+            Tokens.b: 0,
+        ],
+    ];
+    mParser parser = mParser(grammer, Nonterms.A);
+    if (parser.first_table != expected_first) {
+        writeln(parser.first_table);
+        assert(false);
+    }
+    // Token[] tokens = [Token(Tokens.a), Token(Tokens.b), Token(Tokens.b)];
+    // auto tree = parser.parse(tokens);
+    // tree.print();
 }
