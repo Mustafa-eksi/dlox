@@ -41,6 +41,20 @@ struct CstNode(Sym) {
             children[i].print(level+1);
         }
     }
+
+    bool equal(CstNode!Sym node) {
+        if (node.type != type)
+            return false;
+        if (node.alt_idx != alt_idx)
+            return false;
+        if (node.children.length != children.length)
+            return false;
+        foreach (i, ch; children) {
+            if (!ch.equal(node))
+                return false;
+        }
+        return true;
+    }
 }
 
 ///
