@@ -20,6 +20,15 @@
             "sourcePaths": ["./tests/"],
             "targetType": "executable",
             "targetName": "simple_term_factor"
+        },
+        {
+            "name": "clean",
+            "postBuildCommands": [
+                "rm -f *.lst",
+                "rm -f libdlox.a",
+                "rm -f dlox-test-dlox",
+                "rm -f simple_term_factor"
+            ]
         }
     ]
 }
