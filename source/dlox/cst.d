@@ -42,6 +42,13 @@ struct CstNode(Sym) {
         }
     }
 
+    /++
+     + Checks whether this and node is equivalent (including children)
+     +
+     + Params:
+     +      node = CstNode to check against
+     + Returns: True if two trees are equivalent
+     +/
     bool equal(CstNode!Sym node) {
         if (node.type != type)
             return false;
@@ -50,7 +57,7 @@ struct CstNode(Sym) {
         if (node.children.length != children.length)
             return false;
         foreach (i, ch; children) {
-            if (!ch.equal(node))
+            if (!ch.equal(*node.children[i]))
                 return false;
         }
         return true;

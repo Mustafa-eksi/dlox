@@ -280,6 +280,8 @@ struct Parser(T, N) {
 
 ///
 unittest {
+    import std.algorithm.iteration : map;
+    import std.array : array;
     enum Tokens {
         Epsilon = 0,
         a, b, c
@@ -292,6 +294,8 @@ unittest {
     alias GS = mParser.GrammarSymbol;
     alias GT = mParser.GrammarTable;
     alias Token = mParser.TokenInfo;
+    alias CNode = mParser.CNode;
+    alias SI = mParser.SymbolInfo;
 
     /*
      * A = BCb | CbBa
@@ -370,10 +374,17 @@ unittest {
         assert(false);
     }
 
-    // Tokens[] token_list1 = [Tokens.b, Tokens.b, Tokens.a, Tokens.a]; // A 1
-    // auto parse_tree1 = parser.parse(token_list1);
-    // assert(parse_tree1.equal());
-    // Tokens[] token_list2 = [Tokens.b, Tokens.b, Tokens.c, Tokens.a]; // A 1
-    // Tokens[] token_list3 = [Tokens.c, Tokens.b, Tokens.b]; // A 0
-    // Tokens[] token_list4 = [Tokens.a, Tokens.b, Tokens.b]; // A 0
+    Tokens[] token_list1 = [Tokens.b, Tokens.b, Tokens.a, Tokens.a]; // A 1
+    auto parse_tree1 = parser.parse(token_list1.map!(a => Token(a, "")).array);
+    CNode root = CNode(SI(Nonterms.A));
+    root.alt_idx = 1;
+    root.addChild(SI(Token(Tokens.a)));
+    root.addChild(SI(Nonterms.B));
+    root.children[1].alt_idx = 0;
+    root.children[1].addChild(SI(Token(Tokens.a)));
+    root.addChild(SI(Token(Tokens.b)));
+    root.addChild(SI(Nonterms.C));
+    root.children[3].alt_idx = 0;
+    root.children[3].addChild(SI(Token(Tokens.b)));
+    assert(parse_tree1.equal(root));
 }
