@@ -5,10 +5,11 @@ import std.sumtype : SumType, match, has, get;
 import std.typecons : Tuple, tuple;
 import std.conv : to;
 import std.range : empty, back, front, chain;
-import std.algorithm.mutation : stripRight, remove;
+import std.algorithm.mutation : stripRight, remove, fill;
 import std.algorithm.searching : canFind;
 import std.array : assocArray, byPair, popBack;
 import std.stdio : writeln, writefln;
+import std.traits : EnumMembers;
 
 import dlox.cst;
 import dlox.lexer;
@@ -29,20 +30,54 @@ import dlox.lexer;
  +         Naming doesn't matter but don't use 0 for different things.
  +     N = Nonterminal enumeration type
  +/
-struct Parser(T, N) {
+struct Parser(T, N) if (is(T : ulong) && is(N : ulong)) {
+    enum TCount = (EnumMembers!T).length;
+    enum NTCount = (EnumMembers!N).length;
     const T epsilon = cast(T)0;
     alias TokenInfo = Lexer!T.Token;
     alias GrammarSymbol = SumType!(T, N);
-    alias GrammarTable = GrammarSymbol[][][N];
+    alias GrammarTable = GrammarSymbol[][][NTCount];
     GrammarTable rule_list;
 
     N start_nt;
 
     alias RuleIndex = Tuple!(int, N);
-    int[T][N] parsing_table;
+    int[TCount][NTCount] parsing_table;
 
-    int[T][N] first_table;
-    int[T][N] follow_table;
+    int[TCount][NTCount] first_table = [-1];
+    bool[TCount][NTCount] follow_table;
+
+    static void applyArray(ref bool[TCount] a, bool[TCount] b) {
+        foreach (i, el; b) {
+            a[i] = el || a[i];
+        }
+    }
+
+    static void applyArray(ref bool[TCount] a, int[TCount] b) {
+        foreach (i, el; b) {
+            a[i] |= el != -1;
+        }
+    }
+
+    static void applyArray(ref int[TCount] a, int[TCount] b) {
+        foreach (i, el; b) {
+            if (el == -1)
+                continue;
+            a[i] = el;
+        }
+    }
+
+    static void setArray(ref bool[TCount] a, bool b) {
+        foreach (ref el; a) {
+            el = b;
+        }
+    }
+
+    static void setArray(ref int[TCount] a, int b) {
+        foreach (ref el; a) {
+            el = b;
+        }
+    }
 
     /++
      + Gets first set of the given rule.
@@ -52,8 +87,9 @@ struct Parser(T, N) {
      +      alt_idx = Which alternative to get first of.
      + Returns: First set of the given rule.
      +/
-    int[T] getFirst(N nt, int alt_idx) {
-        int[T] output;
+    int[TCount] getFirst(N nt, int alt_idx) {
+        int[TCount] output;
+        setArray(output, -1);
         if (rule_list[nt][alt_idx].empty) {
             output[epsilon] = alt_idx;
             return output;
@@ -67,12 +103,13 @@ struct Parser(T, N) {
             // and add it to our output.
             foreach (f_alt, _; rule_list[f.get!N]) {
                 auto ff = getFirst(f.get!N, f_alt.to!int);
-                output = chain(output.byPair, ff.byPair).assocArray;
+                applyArray(output, ff);
             }
             // Since output is from getFirst, their values will be the
             // alternative indices of f. We have to set them all to alt_idx.
             foreach (tok, ref alt; output) {
-                alt = alt_idx;
+                if (alt != -1)
+                    alt = alt_idx;
             }
         }
         return output;
@@ -88,19 +125,17 @@ struct Parser(T, N) {
      + First(A) = {x, b, e}
      +/
     void initFirst() {
+        foreach (nt, ref fs; first_table) {
+            foreach(token, ref alt; fs) {
+                alt = -1;
+            }
+        }
         // This iterates every production
         foreach (nt, rule; rule_list) {
             foreach (alt_idx, _; rule) {
                 // Calls the recursive function
-                auto f = getFirst(nt, alt_idx.to!int);
-
-                // Merge if already exists and set otherwise
-                if (nt in first_table) {
-                    first_table[nt] = chain(first_table[nt].byPair,
-                        f.byPair).assocArray;
-                } else {
-                    first_table[nt] = f;
-                }
+                auto f = getFirst(nt.to!N, alt_idx.to!int);
+                applyArray(first_table[nt], f);
             }
         }
     }
@@ -110,7 +145,7 @@ struct Parser(T, N) {
      +
      + Follow set of a nonterminal contains every token that can appear right
      + after that nonterminal ends.
-     + Example: For this grammer.
+     + Example: For this grammar.
      + A = xBy | zBq | uBw
      + B = a | b // definition of B doesn't matter in this case
      + Follow(A) = {y, q, w}
@@ -124,42 +159,41 @@ struct Parser(T, N) {
             foreach (rule_nt, alts; rule_list) {
                 // For each alternative production it has
                 foreach (alt_idx, alt; alts) {
-
-                    int[T] trailer;
-                    if (rule_nt in follow_table)
-                        trailer = follow_table[rule_nt];
+                    bool[TCount] trailer = follow_table[rule_nt];
+                    // writeln("nt: ", rule_nt.to!N, ", trailer: ", trailer);
 
                     for (int i = alt.length.to!int-1; i >= 0; i--) {
                         if (alt[i].has!N) {
-                            // Initialize the follow table if not present
-                            if (alt[i].get!N !in follow_table)
-                                follow_table[alt[i].get!N] = null;
                             // Merge nt's follow set and trailer from last iteration
-                            auto merged = chain(follow_table[alt[i].get!N].byPair,
-                                trailer.byPair).assocArray;
+                            bool[TCount] merged = follow_table[alt[i].get!N];
+                            applyArray(merged, trailer);
 
                             // Setting alt[i].get!N's follow table
                             // If this rule adds something in nt's follow set
                             // update the that follow set
                             if (merged != follow_table[alt[i].get!N]) {
+                                // writeln("nt: ", rule_nt.to!N, ", current_nt: ",
+                                //         alt[i].get!N, ", merged: ", merged,
+                                //         " != follow_table: ", follow_table[alt[i].get!N]);
+                                // writeln(follow_table);
                                 follow_table[alt[i].get!N] = merged;
                                 changed = true;
                             }
 
                             // Setting trailer for next iteration
                             // If this nt can be empty:
-                            if (epsilon in first_table[alt[i].get!N]) {
-                                trailer = chain(first_table[alt[i].get!N].byPair,
-                                        trailer.byPair).assocArray;
+                            if (first_table[alt[i].get!N][epsilon] != -1) {
+                                applyArray(trailer, first_table[alt[i].get!N]);
                             } else {
-                                trailer = first_table[alt[i].get!N];
+                                setArray(trailer, false);
+                                applyArray(trailer, first_table[alt[i].get!N]);
                             }
                         } else {
                             // Encountering a token means it will be what
                             // follows the next symbol
-                            trailer = null;
+                            setArray(trailer, false);
                             // TODO: Change trailer into a bool[T]
-                            trailer[alt[i].get!T] = 1;
+                            trailer[alt[i].get!T] = true;
                         }
                     }
                 }
@@ -171,14 +205,21 @@ struct Parser(T, N) {
      + Builds LL(1) parsing table using first and follow sets.
      +/
     void buildParsingTable() {
+        foreach (nt, ref fs; parsing_table) {
+            foreach(token, ref alt; fs) {
+                alt = -1;
+            }
+        }
         foreach (nt, rule; rule_list) {
             // For starting productions
             foreach (sym, first_idx; first_table[nt]) {
                 parsing_table[nt][sym] = first_idx;
             }
-            if (epsilon in first_table[nt]) {
+            if (first_table[nt][epsilon] != -1) {
                 // Required for ending productions
-                foreach (sym, follow_idx; follow_table[nt]) {
+                foreach (sym, fol; follow_table[nt]) {
+                    if (!fol)
+                        continue;
                     parsing_table[nt][sym] = first_table[nt][epsilon];
                 }
             }
@@ -225,15 +266,13 @@ struct Parser(T, N) {
                         top.get!T, token_cursor, nt_stack);
                 writeln("- Found ", w);
                 return parse_tree;
-            } else if (top.get!N !in parsing_table || w !in
-                    parsing_table[top.get!N]) {
+            } else if (parsing_table[top.get!N][w] == -1) {
                 // Top symbol is a nonterminal but we can not start it from the
                 // parsing table
                 // FIXME: Return the error to the user.
                 writefln("Parsing error (Match error %s) %d - %s", top.get!N, token_cursor, nt_stack);
                 return parse_tree;
-            } else if (top.get!N in parsing_table && w in
-                    parsing_table[top.get!N]) {
+            } else if (parsing_table[top.get!N][w] != -1) {
                 // We start matching of a nonterminal
                 nt_stack.popBack();
                 pt_cursor.alt_idx = parsing_table[top.get!N][w];
@@ -268,7 +307,7 @@ struct Parser(T, N) {
      +      start = Starting symbol. This is what will be matched when parse
      +              gets called.
      +/
-    this (GrammarSymbol[][][N] rules, N start) {
+    this (GrammarSymbol[][][NTCount] rules, N start) {
         rule_list = rules;
         start_nt = start;
 
@@ -311,48 +350,62 @@ unittest {
         Nonterms.C: [[GS(Tokens.b)]]
     ];
 
-    int[Tokens][Nonterms] expected_first = [
+    int[mParser.TCount][mParser.NTCount] expected_first = [
         Nonterms.A: [
             Tokens.a: 0,
-            Tokens.c: 0,
-            Tokens.b: 1
-        ],
-        Nonterms.B: [
-            Tokens.a: 0,
-            Tokens.c: 1,
-        ],
-        Nonterms.C: [
-            Tokens.b: 0,
-        ],
-    ];
-
-    int[Tokens][Nonterms] expected_follow = [
-        Nonterms.A: [
-            Tokens.Epsilon: 1,
-        ],
-        Nonterms.B: [
-            Tokens.b: 0,
-            Tokens.a: 1,
-        ],
-        Nonterms.C: [
             Tokens.b: 1,
-        ],
-    ];
-
-    int[Tokens][Nonterms] expected_parsing_table = [
-        Nonterms.A: [
-            Tokens.a: 0,
             Tokens.c: 0,
-            Tokens.b: 1
+            Tokens.Epsilon: -1,
         ],
         Nonterms.B: [
             Tokens.a: 0,
             Tokens.c: 1,
+            Tokens.b: -1,
+            Tokens.Epsilon: -1,
         ],
         Nonterms.C: [
             Tokens.b: 0,
+            Tokens.a: -1,
+            Tokens.c: -1,
+            Tokens.Epsilon: -1,
         ],
     ];
+    mParser.setArray(expected_first[0], -1);
+
+    bool[mParser.TCount][mParser.NTCount] expected_follow = [
+        Nonterms.A: [
+            Tokens.Epsilon: true,
+        ],
+        Nonterms.B: [
+            Tokens.b: true,
+            Tokens.a: true,
+        ],
+        Nonterms.C: [
+            Tokens.b: true,
+        ],
+    ];
+
+    int[mParser.TCount][mParser.NTCount] expected_parsing_table = [
+        Nonterms.A: [
+            Tokens.a: 0,
+            Tokens.c: 0,
+            Tokens.b: 1,
+            Tokens.Epsilon: -1,
+        ],
+        Nonterms.B: [
+            Tokens.a: 0,
+            Tokens.c: 1,
+            Tokens.Epsilon: -1,
+            Tokens.b: -1,
+        ],
+        Nonterms.C: [
+            Tokens.b: 0,
+            Tokens.Epsilon: -1,
+            Tokens.a: -1,
+            Tokens.c: -1,
+        ],
+    ];
+    mParser.setArray(expected_parsing_table[0], -1);
 
     mParser parser = mParser(grammer, Nonterms.A);
 

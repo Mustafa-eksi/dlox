@@ -1,4 +1,4 @@
-import std.stdio : writeln;
+import std.stdio : writeln, write;
 import std.file : exists, read;
 import std.conv : to, parse;
 import std.typecons : tuple;
@@ -45,6 +45,7 @@ bool[char] SEPARATORS = [
 bool[char] DISCARDING_SEPARATORS = ['\n': true, ' ': true];
 
 alias GS = Parser!(Tokens, Nonterminals).GrammarSymbol;
+alias GT = Parser!(Tokens, Nonterminals).GrammarTable;
 alias CNode = Parser!(Tokens, Nonterminals).CNode;
 alias Token = Lexer!Tokens.Token;
 
@@ -110,7 +111,7 @@ int main(string[] args)
     else
         source_filename = args[1];
 
-    GS[][][Nonterminals] RULE_SET = [
+    GT RULE_SET = [
         Nonterminals.Expression: [
             [
                 GS(Nonterminals.Term), GS(Nonterminals.ExpressionRest),
@@ -139,13 +140,35 @@ int main(string[] args)
         writeln(RULE_SET);
         return 0;
     } else if (args[1] == "print_first_table") {
-        writeln(parser.first_table);
+        foreach (nt, alt; parser.first_table) {
+            write(nt.to!Nonterminals, ": [");
+            foreach (tok, alt_idx; alt) {
+                if (alt_idx == -1) continue;
+                write(tok.to!Tokens, ": ", alt_idx,", ");
+            }
+            writeln("],");
+        }
         return 0;
     } else if (args[1] == "print_follow_table") {
-        writeln(parser.follow_table);
+        foreach (nt, alt; parser.follow_table) {
+            write(nt.to!Nonterminals, ": [");
+            foreach (tok, alt_idx; alt) {
+                if (alt_idx == -1) continue;
+                write(tok.to!Tokens, ": ", alt_idx,", ");
+            }
+            writeln("],");
+        }
         return 0;
     } else if (args[1] == "print_parsing_table") {
         writeln(parser.parsing_table);
+        foreach (nt, alt; parser.parsing_table) {
+            write(nt.to!Nonterminals, ": [");
+            foreach (tok, alt_idx; alt) {
+                if (alt_idx == -1) continue;
+                write(tok.to!Tokens, ": ", alt_idx,", ");
+            }
+            writeln("],");
+        }
         return 0;
     }
     if (!exists(source_filename)) {
