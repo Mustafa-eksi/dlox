@@ -27,7 +27,11 @@
                 "rm -f *.lst",
                 "rm -f libdlox.a",
                 "rm -f dlox-test-dlox",
-                "rm -f simple_term_factor"
+                "rm -f simple_term_factor",
+                "rm -f *.def *.log",
+                "rm -f output.txt",
+                "rm -f trace.html",
+                "rm -f *.a"
             ]
         }
     ]
