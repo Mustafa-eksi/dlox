@@ -48,6 +48,7 @@ alias GS = Parser!(Tokens, Nonterminals).GrammarSymbol;
 alias GT = Parser!(Tokens, Nonterminals).GrammarTable;
 alias CNode = Parser!(Tokens, Nonterminals).CNode;
 alias Token = Lexer!Tokens.Token;
+alias mParser = Parser!(Tokens, Nonterminals).Parser;
 
 Tokens tokenizer(string lex) {
     if (lex in LEXEME_TABLE)
@@ -111,7 +112,7 @@ int main(string[] args)
     else
         source_filename = args[1];
 
-    GT RULE_SET = [
+    enum GT RULE_SET = [
         Nonterminals.Expression: [
             [
                 GS(Nonterminals.Term), GS(Nonterminals.ExpressionRest),
@@ -135,7 +136,7 @@ int main(string[] args)
         ],
     ];
 
-    auto parser = Parser!(Tokens, Nonterminals)(RULE_SET, Nonterminals.Expression);
+    auto parser = mParser!(RULE_SET, Nonterminals.Expression)();
     if (args[1] == "dump_grammar") {
         writeln(RULE_SET);
         return 0;
