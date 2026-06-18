@@ -2,9 +2,11 @@ import std.stdio : writeln, write;
 import std.file : exists, read;
 import std.conv : to, parse;
 import std.typecons : tuple;
-import std.sumtype : has, get;
+import std.sumtype : SumType, has, get;
+import std.traits : EnumMembers;
 import dlox;
 
+/// Tokens for the simple expression grammar
 enum Tokens {
     EPSILON = 0,
     IDENTIFIER = 1,
@@ -18,6 +20,7 @@ enum Tokens {
     TIMES,
 }
 
+/// Nonterminals for the simple expression grammar
 enum Nonterminals {
     Unknown = 0,
     Expression,
@@ -27,6 +30,7 @@ enum Nonterminals {
     Factor,
 }
 
+/// Lexeme table mapping string lexemes to their corresponding tokens
 const Tokens[string] LEXEME_TABLE = [
     ",": Tokens.COMMA,
     ";": Tokens.SEMICOLON,
@@ -38,24 +42,56 @@ const Tokens[string] LEXEME_TABLE = [
     "*": Tokens.TIMES,
 ];
 
+/// Set of characters that are considered separators in the simple expression
+/// grammar
 bool[char] SEPARATORS = [
     ',': true, ';': true, '(': true, ')': true, '{': true, '}': true, '+': true,
     '*':true,
 ];
+
+/// Set of characters that are considered discarding separators (e.g., whitespace)
 bool[char] DISCARDING_SEPARATORS = ['\n': true, ' ': true];
 
-alias GS = Parser!(Tokens, Nonterminals).GrammarSymbol;
-alias GT = Parser!(Tokens, Nonterminals).GrammarTable;
-alias CNode = Parser!(Tokens, Nonterminals).CNode;
-alias Token = Lexer!Tokens.Token;
-alias mParser = Parser!(Tokens, Nonterminals).Parser;
+alias GS = SumType!(Tokens, Nonterminals);
+alias GT = GS[][][(EnumMembers!Nonterminals).length];
 
+/// Grammar rules for the simple expression grammar
+enum GT RULE_SET = [
+    Nonterminals.Expression: [
+        [
+            GS(Nonterminals.Term), GS(Nonterminals.ExpressionRest),
+        ]
+    ],
+    Nonterminals.ExpressionRest: [
+        [
+            GS(Tokens.PLUS), GS(Nonterminals.Term),
+            GS(Nonterminals.ExpressionRest)
+        ],
+        []
+    ],
+    Nonterminals.Term: [[GS(Nonterminals.Factor), GS(Nonterminals.TermRest)]],
+    Nonterminals.TermRest: [
+        [GS(Tokens.TIMES), GS(Nonterminals.Factor), GS(Nonterminals.TermRest)],
+        []
+    ],
+    Nonterminals.Factor: [
+        [GS(Tokens.OPAREN), GS(Nonterminals.Expression), GS(Tokens.CPAREN)],
+        [GS(Tokens.IDENTIFIER)]
+    ],
+];
+
+alias mParser = Parser!(Tokens, Nonterminals, RULE_SET, Nonterminals.Expression);
+alias CNode = mParser.CNode;
+alias Token = Lexer!Tokens.LexerToken;
+
+/// Tokenizer function that converts a lexeme string into its corresponding token
 Tokens tokenizer(string lex) {
     if (lex in LEXEME_TABLE)
         return LEXEME_TABLE[lex];
     return Tokens.IDENTIFIER;
 }
 
+/// Function to interpret the concrete syntax tree (CST) and evaluate the expression
 float interpret(CNode *node) {
     if (node.type.has!Nonterminals) {
         switch (node.type.get!Nonterminals) {
@@ -83,7 +119,7 @@ float interpret(CNode *node) {
         default: assert(0);
         }
     } else {
-        auto t = node.type.get!Token;
+        const auto t = node.type.get!Token;
         assert(t.type == Tokens.IDENTIFIER, "Error: can not interpret non-identifier");
         return node.type.get!Token.seminfo.parse!float;
     }
@@ -112,31 +148,7 @@ int main(string[] args)
     else
         source_filename = args[1];
 
-    enum GT RULE_SET = [
-        Nonterminals.Expression: [
-            [
-                GS(Nonterminals.Term), GS(Nonterminals.ExpressionRest),
-            ]
-        ],
-        Nonterminals.ExpressionRest: [
-            [
-                GS(Tokens.PLUS), GS(Nonterminals.Term),
-                GS(Nonterminals.ExpressionRest)
-            ],
-            []
-        ],
-        Nonterminals.Term: [[GS(Nonterminals.Factor), GS(Nonterminals.TermRest)]],
-        Nonterminals.TermRest: [
-            [GS(Tokens.TIMES), GS(Nonterminals.Factor), GS(Nonterminals.TermRest)],
-            []
-        ],
-        Nonterminals.Factor: [
-            [GS(Tokens.OPAREN), GS(Nonterminals.Expression), GS(Tokens.CPAREN)],
-            [GS(Tokens.IDENTIFIER)]
-        ],
-    ];
-
-    auto parser = mParser!(RULE_SET, Nonterminals.Expression)();
+    auto parser = mParser();
     if (args[1] == "dump_grammar") {
         writeln(RULE_SET);
         return 0;

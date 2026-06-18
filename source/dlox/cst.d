@@ -12,9 +12,17 @@ import std.conv : to;
  +      Sym = Symbol type, could be anything
  +/
 struct CstNode(Sym) {
+    /// Content of the node.
     Sym type;
+
+    /// Alternative index of the production rule used to generate this node. -1
+    /// if not applicable.
     int alt_idx = -1;
+
+    /// Children of this node.
     CstNode*[] children;
+
+    /// Parent of this node. Null if this is the root.
     CstNode* parent;
 
     /++
@@ -92,8 +100,8 @@ unittest {
     for (int fuzz = 0; fuzz < 50; fuzz++) {
         alias CNode = CstNode!int;
         CNode root = CNode(0);
-        int count = uniform(50, 100);
-        int level = uniform(10, 15);
+        const int count = uniform(50, 100);
+        const int level = uniform(10, 15);
         for (int i = 0; i < count; i++) {
             root.addChild(i);
             CNode *c = root.children[i];

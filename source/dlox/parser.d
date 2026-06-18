@@ -6,6 +6,7 @@ import std.typecons : Tuple, tuple;
 import std.conv : to;
 import std.range : empty, back, front, chain;
 import std.algorithm.mutation : stripRight, remove, fill;
+import std.algorithm.iteration : each;
 import std.algorithm.searching : canFind;
 import std.array : assocArray, byPair, popBack;
 import std.stdio : writeln, writefln;
@@ -30,22 +31,21 @@ import dlox.lexer;
  +         Naming doesn't matter but don't use 0 for different things.
  +     N = Nonterminal enumeration type
  +/
-struct Parser(T, N) if (is(T : ulong) && is(N : ulong)) {
 
-enum TCount = (EnumMembers!T).length;
-enum NTCount = (EnumMembers!N).length;
-static const T epsilon = cast(T)0;
-alias TokenInfo = Lexer!T.Token;
-alias GrammarSymbol = SumType!(T, N);
-alias GrammarTable = GrammarSymbol[][][NTCount];
-alias SymbolInfo = SumType!(N, TokenInfo);
-alias CNode = CstNode!SymbolInfo;
-
-struct Parser(GrammarTable rule_list, N start) {
+struct Parser(T, N, alias rule_list, N start)
+    if (is(T : ulong) && is(N : ulong) &&
+        is(typeof(rule_list) == SumType!(T, N)[][][(EnumMembers!N).length]))
+{
+    /// Number of tokens in the T enumeration
     enum TCount = (EnumMembers!T).length;
+
+    /// Number of nonterminals in the T enumeration
     enum NTCount = (EnumMembers!N).length;
+
+    /// Epsilon token. This is used to represent empty productions and end of
+    /// input.
     static const T epsilon = cast(T)0;
-    alias TokenInfo = Lexer!T.Token;
+    alias TokenInfo = Lexer!T.LexerToken;
     alias GrammarSymbol = SumType!(T, N);
     alias GrammarTable = GrammarSymbol[][][NTCount];
     alias SymbolInfo = SumType!(N, TokenInfo);
@@ -53,37 +53,62 @@ struct Parser(GrammarTable rule_list, N start) {
 
     alias RuleIndex = Tuple!(int, N);
 
+    /++
+     + First table of the grammar. This is a 2D array where first dimension is
+     + indexed by nonterminals and second dimension is indexed by tokens. The
+     + value of the table is the alternative index of the production rule that
+     + can be used to start the nonterminal with the given token. -1 if there
+     + is no such production.
+     +/
     enum int[TCount][NTCount] first_table = initFirst();
+
+    /++
+     + Follow table of the grammar. This is a 2D array where first dimension is
+     + indexed by nonterminals and second dimension is indexed by tokens. The
+     + value of the table is true if the token can follow the nonterminal.
+     +/
     enum bool[TCount][NTCount] follow_table = initFollow(start);
+
+    /++
+     + LL(1) parsing table of the grammar. This is a 2D array where first
+     + dimension is indexed by nonterminals and second dimension is indexed by
+     + tokens. The value of the table is the alternative index of the production
+     + rule that can be used to start the nonterminal with the given token. -1
+     + if there is no such production.
+     +/
     enum int[TCount][NTCount] parsing_table = buildParsingTable();
 
-    static void applyArray(ref bool[TCount] a, bool[TCount] b) {
-        foreach (i, el; b) {
+    /// Applies token set b to a.
+    static void applyTokenSet(ref bool[TCount] a, bool[TCount] b) {
+        b.each!((i, el) {
             a[i] = el || a[i];
-        }
+        });
     }
 
-    static void applyArray(ref bool[TCount] a, int[TCount] b) {
-        foreach (i, el; b) {
-            a[i] |= el != -1;
-        }
+    /// Applies token map b to token set a.
+    static void applyTokenMapToSet(ref bool[TCount] a, int[TCount] b) {
+        b.each!((tok, val) {
+            a[tok] |= val != -1;
+        });
     }
 
-    static void applyArray(ref int[TCount] a, int[TCount] b) {
-        foreach (i, el; b) {
-            if (el == -1)
-                continue;
-            a[i] = el;
-        }
+    /// Applies token map b to token map a.
+    static void applyTokenMap(ref int[TCount] a, int[TCount] b) {
+        b.each!((tok, val) {
+            if (val != -1)
+                a[tok] = val;
+        });
     }
 
-    static void setArray(ref bool[TCount] a, bool b) {
+    /// Initializes all elements of token set a to b.
+    static void initTokenSet(ref bool[TCount] a, bool b) {
         foreach (ref el; a) {
             el = b;
         }
     }
 
-    static void setArray(ref int[TCount] a, int b) {
+    /// Initializes all elements of token map a to b.
+    static void initTokenMap(ref int[TCount] a, int b) {
         foreach (ref el; a) {
             el = b;
         }
@@ -99,7 +124,7 @@ struct Parser(GrammarTable rule_list, N start) {
      +/
     static int[TCount] getFirst(N nt, int alt_idx) {
         int[TCount] output;
-        setArray(output, -1);
+        initTokenMap(output, -1);
         if (rule_list[nt][alt_idx].empty) {
             output[epsilon] = alt_idx;
             return output;
@@ -113,7 +138,7 @@ struct Parser(GrammarTable rule_list, N start) {
             // and add it to our output.
             foreach (f_alt, _; rule_list[f.get!N]) {
                 auto ff = getFirst(f.get!N, f_alt.to!int);
-                applyArray(output, ff);
+                applyTokenMap(output, ff);
             }
             // Since output is from getFirst, their values will be the
             // alternative indices of f. We have to set them all to alt_idx.
@@ -146,7 +171,7 @@ struct Parser(GrammarTable rule_list, N start) {
             foreach (alt_idx, _; rule) {
                 // Calls the recursive function
                 auto f = getFirst(nt.to!N, alt_idx.to!int);
-                applyArray(output[nt], f);
+                applyTokenMap(output[nt], f);
             }
         }
         return output;
@@ -178,7 +203,7 @@ struct Parser(GrammarTable rule_list, N start) {
                         if (alt[i].has!N) {
                             // Merge nt's follow set and trailer from last iteration
                             bool[TCount] merged = output[alt[i].get!N].dup;
-                            applyArray(merged, trailer);
+                            applyTokenSet(merged, trailer);
 
                             // Setting alt[i].get!N's follow table
                             // If this rule adds something in nt's follow set
@@ -191,15 +216,15 @@ struct Parser(GrammarTable rule_list, N start) {
                             // Setting trailer for next iteration
                             // If this nt can be empty:
                             if (first_table[alt[i].get!N][epsilon] != -1) {
-                                applyArray(trailer, first_table[alt[i].get!N]);
+                                applyTokenMapToSet(trailer, first_table[alt[i].get!N]);
                             } else {
-                                setArray(trailer, false);
-                                applyArray(trailer, first_table[alt[i].get!N]);
+                                initTokenSet(trailer, false);
+                                applyTokenMapToSet(trailer, first_table[alt[i].get!N]);
                             }
                         } else {
                             // Encountering a token means it will be what
                             // follows the next symbol
-                            setArray(trailer, false);
+                            initTokenSet(trailer, false);
                             // TODO: Change trailer into a bool[T]
                             trailer[alt[i].get!T] = true;
                         }
@@ -286,7 +311,7 @@ struct Parser(GrammarTable rule_list, N start) {
                 nt_stack.popBack();
                 pt_cursor.alt_idx = parsing_table[top.get!N][w];
                 auto list = rule_list[top.get!N][parsing_table[top.get!N][w]];
-                auto size = list.length.to!int-1;
+                const auto size = list.length.to!int-1;
                 // We add symbols from the selected production in reverse order
                 // so first symbol will be on top of the stack.
                 for (int i = size; i >= 0; i--) {
@@ -306,7 +331,6 @@ struct Parser(GrammarTable rule_list, N start) {
         return parse_tree;
     }
 }
-}
 
 ///
 unittest {
@@ -321,18 +345,8 @@ unittest {
         A, B, C
     }
 
-    alias oParser = Parser!(Tokens, Nonterms);
-    alias GS = oParser.GrammarSymbol;
-    alias GT = oParser.GrammarTable;
-    alias Token = oParser.TokenInfo;
-    alias CNode = oParser.CNode;
-    alias SI = oParser.SymbolInfo;
-
-    /*
-     * A = BCb | CbBa
-     * B = a | c
-     * C = b
-     */
+    alias GS = SumType!(Tokens, Nonterms);
+    alias GT = GS[][][EnumMembers!Nonterms.length];
     enum GT GRAMMAR = [
         Nonterms.A: [
             [GS(Nonterms.B), GS(Nonterms.C), GS(Tokens.b)],
@@ -341,10 +355,18 @@ unittest {
         Nonterms.B: [[GS(Tokens.a)], [GS(Tokens.c)]],
         Nonterms.C: [[GS(Tokens.b)]]
     ];
-    alias mParser = oParser.Parser!(GRAMMAR, Nonterms.A);
+    alias mParser = Parser!(Tokens, Nonterms, GRAMMAR, Nonterms.A);
+    alias Token = mParser.TokenInfo;
+    alias CNode = mParser.CNode;
+    alias SI = mParser.SymbolInfo;
 
+    /*
+     * A = BCb | CbBa
+     * B = a | c
+     * C = b
+     */
 
-    int[oParser.TCount][oParser.NTCount] expected_first = [
+    int[mParser.TCount][mParser.NTCount] expected_first = [
         Nonterms.A: [
             Tokens.a: 0,
             Tokens.b: 1,
@@ -364,7 +386,7 @@ unittest {
             Tokens.Epsilon: -1,
         ],
     ];
-    mParser.setArray(expected_first[0], -1);
+    mParser.initTokenMap(expected_first[0], -1);
 
     bool[mParser.TCount][mParser.NTCount] expected_follow = [
         Nonterms.A: [
@@ -399,7 +421,7 @@ unittest {
             Tokens.c: -1,
         ],
     ];
-    mParser.setArray(expected_parsing_table[0], -1);
+    mParser.initTokenMap(expected_parsing_table[0], -1);
 
     mParser parser = mParser();
 

@@ -39,16 +39,27 @@ import std.ascii : isWhite;
  +/
 struct Lexer(T: int) {
     /// Internal token type for packaging semantic information with the token
-    struct Token {
+    struct LexerToken {
+        /// Token type, should be from the token enumeration T
         T type;
         /// String slice from the source code of the token
         string seminfo;
     }
 
+    /// Source code to lex.
     string source_code;
+
+    /// Cursor for the current position in the source code.
     size_t cursor;
+
+    /// Tokenizer function that takes lexemes and returns Tokens.
     T function(string lex) tokenizer;
+
+    /// Associative array of separators. Separators should be set to true.
     bool[char] separators;
+
+    /// Same as separators but these get discarded, useful for discarding
+    /// whitespace.
     bool[char] discarding_separators;
 
     /**
@@ -91,7 +102,7 @@ struct Lexer(T: int) {
      + Advances to next symbol.
      + Returns: Next token, advances cursor. Returns Epsilon (0) on file end.
      +/
-    Token next_symbol() {
+    LexerToken next_symbol() {
         // TODO: change isWhite with separators and discarding separators
         while (cursor < source_code.length && source_code[cursor] in
                 discarding_separators) {
@@ -99,7 +110,7 @@ struct Lexer(T: int) {
         }
         size_t start = cursor;
         if (cursor >= source_code.length)
-            return Token(to!T(0), "");
+            return LexerToken(to!T(0), "");
         while (cursor < source_code.length && source_code[cursor] !in separators
                 && source_code[cursor] !in discarding_separators) {
             cursor++;
@@ -109,10 +120,11 @@ struct Lexer(T: int) {
             cursor++;
         }
         auto ty = tokenizer(source_code[start..cursor]);
-        return Token(ty, source_code[start..cursor]);
+        return LexerToken(ty, source_code[start..cursor]);
     }
 }
 
+/// Tokenizer function for unit tests.
 T __unittest_tokenizer(T)(string lex) {
     import std.range : empty;
     if (lex == "+")
@@ -157,7 +169,7 @@ unittest {
     }
     alias mLexer = Lexer!Tokens;
     string generateIdentifier() {
-        ulong length = uniform(1, 10);
+        const ulong length = uniform(1, 10);
         string output;
         for (int i = 0; i < length; i++) {
             output ~= uniform('a', 'z'+1);
@@ -165,7 +177,7 @@ unittest {
         return output;
     }
     Tokens[] generateRandomTokens() {
-        ulong length = uniform(10, 15);
+        const ulong length = uniform(10, 15);
         Tokens[] output;
         for (int i = 0; i < length; i++) {
             // FIXME: get first and last instead of hardcoding
